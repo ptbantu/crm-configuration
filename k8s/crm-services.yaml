@@ -1,0 +1,99 @@
+# ============================================================
+# CRM 微服务 Service 配置
+# 包含所有服务的 Service
+# ============================================================
+
+---
+# Foundation Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-foundation-service
+  labels:
+    app: crm-foundation-service
+    service: foundation
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: http
+  selector:
+    app: crm-foundation-service
+
+---
+# Workflow Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-workflow-service
+  labels:
+    app: crm-workflow-service
+    service: workflow
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8083
+    targetPort: 8083
+    protocol: TCP
+    name: http
+  selector:
+    app: crm-workflow-service
+
+---
+# Business Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-business-service
+  labels:
+    app: crm-business-service
+    service: business
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8082
+    targetPort: 8082
+    protocol: TCP
+    name: http
+  selector:
+    app: crm-business-service
+
+---
+# Finance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-finance-service
+  labels:
+    app: crm-finance-service
+    service: finance
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8084
+    targetPort: 8084
+    protocol: TCP
+    name: http
+  selector:
+    app: crm-finance-service
+
+---
+# Gateway Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-gateway
+  labels:
+    app: crm-gateway
+    service: gateway
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: crm-gateway

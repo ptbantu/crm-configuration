@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activiti
+  labels:
+    app: activiti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activiti
+  template:
+    metadata:
+      labels:
+        app: activiti
+    spec:
+      containers:
+      - name: activiti
+        # 使用 Activiti 7 官方镜像，或者使用自定义构建的镜像
+        # 如果镜像不存在，需要先构建自定义镜像
+        image: alfresco/alfresco-activiti-app:latest
+        # 备选镜像选项：
+        # - alfresco/alfresco-activiti-app:7.4.0
+        # - 或者使用自定义镜像: your-registry/activiti-spring-boot:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SPRING_CONFIG_LOCATION
+          value: "classpath:/application.yml,file:/etc/activiti/application.yml"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          value: "com.mysql.cj.jdbc.Driver"
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "update"
+        - name: SPRING_JPA_SHOW_SQL
+          value: "false"
+        - name: ACTIVITI_DATABASE_SCHEMA_UPDATE
+          value: "true"
+        - name: SERVER_PORT
+          value: "8080"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/activiti
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: activiti-config
+
