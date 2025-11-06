@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-storage
+  local:
+    path: /home/bantu/bantu-data/mysql
+  # 注意：local volume 需要 nodeAffinity 指定节点
+  # 如果单节点集群，请运行: kubectl get nodes 获取节点名，然后取消注释下面的配置
+  # nodeAffinity:
+  #   required:
+  #     nodeSelectorTerms:
+  #     - matchExpressions:
+  #       - key: kubernetes.io/hostname
+  #         operator: In
+  #         values:
+  #         - "YOUR_NODE_NAME"  # 替换为实际节点名
+

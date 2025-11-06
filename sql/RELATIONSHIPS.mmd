@@ -1,0 +1,314 @@
+erDiagram
+    %% User & Role Domain
+    organizations {
+        uuid id PK
+        text name
+        text code UK
+        text external_id
+        text organization_type
+        uuid parent_id FK
+        text email
+        text phone
+        text website
+        text street
+        text city
+        text state_province
+        text postal_code
+        text country_region
+        text description
+        boolean is_active
+        boolean is_locked
+        jsonb tags
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    organization_employees {
+        uuid id PK
+        uuid organization_id FK
+        uuid user_id FK
+        text first_name
+        text last_name
+        text email
+        text phone
+        text position
+        text department
+        text employee_number
+        boolean is_primary
+        boolean is_manager
+        boolean is_decision_maker
+        boolean is_active
+        date joined_at
+        date left_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    users {
+        uuid id PK
+        text username
+        text email UK
+        text phone
+        text password_hash
+        text display_name
+        uuid organization_id FK
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    roles {
+        uuid id PK
+        text code UK
+        text name
+        text description
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    user_roles {
+        uuid user_id FK
+        uuid role_id FK
+    }
+    
+    %% Product Domain
+    product_categories {
+        uuid id PK
+        text code UK
+        text name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    products {
+        uuid id PK
+        text code
+        text name
+        uuid vendor_id FK
+        uuid category_id FK
+        numeric price_list
+        numeric price_channel
+        numeric price_cost
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    %% Organization Extensions
+    vendor_extensions {
+        uuid organization_id PK
+        text account_group
+        text category_name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    agent_extensions {
+        uuid organization_id PK
+        text account_group
+        text category_name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    %% Customer Domain
+    customer_sources {
+        uuid id PK
+        text code UK
+        text name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    customer_channels {
+        uuid id PK
+        text code UK
+        text name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    customers {
+        uuid id PK
+        text code
+        text name
+        text customer_source_type
+        text customer_type
+        uuid owner_user_id FK
+        uuid agent_id FK
+        uuid agent_user_id FK
+        uuid parent_customer_id FK
+        uuid source_id FK
+        uuid channel_id FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    contacts {
+        uuid id PK
+        uuid customer_id FK
+        text first_name
+        text last_name
+        text email
+        text phone
+        boolean is_primary
+        boolean is_decision_maker
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    visa_records {
+        uuid id PK
+        uuid customer_id FK
+        text customer_name
+        text passport_id
+        text entry_city
+        text currency_code
+        numeric fx_rate
+        numeric payment_amount
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    %% Order Domain
+    order_statuses {
+        uuid id PK
+        text code UK
+        text name
+        integer display_order
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    orders {
+        uuid id PK
+        text order_number UK
+        text title
+        uuid customer_id FK
+        uuid product_id FK
+        uuid sales_user_id FK
+        uuid status_id FK
+        integer quantity
+        numeric unit_price
+        numeric total_amount
+        numeric final_amount
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    order_assignments {
+        uuid id PK
+        uuid order_id FK
+        uuid assigned_to_user_id FK
+        uuid assigned_by_user_id FK
+        uuid vendor_id FK
+        uuid organization_employee_id FK
+        uuid vendor_employee_id FK
+        text assignment_type
+        boolean is_primary
+        timestamptz assigned_at
+        timestamptz unassigned_at
+        timestamptz created_at
+    }
+    
+    order_stages {
+        uuid id PK
+        uuid order_id FK
+        uuid assigned_to_user_id FK
+        text stage_name
+        text stage_code
+        integer stage_order
+        text status
+        integer progress_percent
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    deliverables {
+        uuid id PK
+        uuid order_id FK
+        uuid order_stage_id FK
+        text deliverable_type
+        text name
+        text file_path
+        text file_url
+        bigint file_size
+        text mime_type
+        boolean is_verified
+        uuid uploaded_by FK
+        uuid verified_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    payments {
+        uuid id PK
+        uuid order_id FK
+        text payment_type
+        numeric amount
+        text currency_code
+        text payment_method
+        date payment_date
+        timestamptz received_at
+        text status
+        uuid confirmed_by FK
+        uuid created_by FK
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    
+    %% Relationships
+    %% User & Role
+    organizations ||--o| organizations : "parent"
+    organizations ||--o{ organization_employees : "has"
+    users ||--o{ organization_employees : "member"
+    users ||--o| organizations : "primary (organization_id)"
+    users ||--o{ user_roles : "has"
+    roles ||--o{ user_roles : "has"
+    
+    %% Product Domain
+    organizations ||--o{ products : "supplies (vendor_id)"
+    product_categories ||--o{ products : "categorizes"
+    
+    %% Organization Extensions
+    organizations ||--o| vendor_extensions : "has"
+    organizations ||--o| agent_extensions : "has"
+    
+    %% Customer Domain
+    customer_sources ||--o{ customers : "sources"
+    customer_channels ||--o{ customers : "channels"
+    customers ||--o| customers : "parent_customer"
+    customers ||--o{ contacts : "has"
+    customers ||--o{ visa_records : "has"
+    customers ||--o{ orders : "places"
+    
+    %% User to Customer
+    users ||--o{ customers : "owns (owner_user_id)"
+    organizations ||--o{ customers : "agents (agent_id)"
+    users ||--o{ customers : "agents (agent_user_id deprecated)"
+    
+    %% Order Domain
+    order_statuses ||--o{ orders : "status"
+    products ||--o{ orders : "ordered"
+    users ||--o{ orders : "sells (sales_user_id)"
+    orders ||--o{ order_assignments : "assigned"
+    orders ||--o{ order_stages : "stages"
+    orders ||--o{ deliverables : "delivers"
+    orders ||--o{ payments : "pays"
+    
+    %% User to Order Domain
+    users ||--o{ order_assignments : "assigned_to"
+    users ||--o{ order_assignments : "assigned_by"
+    users ||--o{ order_stages : "assigned_to"
+    users ||--o{ deliverables : "uploads"
+    users ||--o{ deliverables : "verifies"
+    users ||--o{ payments : "confirms"
+    users ||--o{ payments : "creates"
+    
+    %% Organization to Order Domain
+    organizations ||--o{ order_assignments : "vendor (vendor_id)"
+    organization_employees ||--o{ order_assignments : "assigned (organization_employee_id)"
+    
+    %% Order Stages to Deliverables
+    order_stages ||--o{ deliverables : "produces"

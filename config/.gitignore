@@ -1,0 +1,6 @@
+# 忽略包含敏感信息的配置文件
+database.yml
+
+# 保留示例文件
+!database.example.yml
+
