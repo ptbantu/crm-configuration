@@ -17,82 +17,9 @@
 -- ============================================================
 
 -- ============================================================
--- 1. Core Tables: Organizations, Users, Roles
+-- 1. Core Tables: Users, Roles, Organizations
 -- ============================================================
-
--- =====================================
--- Organizations (统一组织表)
--- =====================================
--- Supports: 'internal' (内部组织), 'vendor' (供应商), 'agent' (渠道代理)
-CREATE TABLE IF NOT EXISTS organizations (
-  id                 CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  name               TEXT NOT NULL,
-  code               VARCHAR(255) UNIQUE,
-  external_id        VARCHAR(255) UNIQUE,
-  organization_type  VARCHAR(50) NOT NULL,                     -- 'internal' | 'vendor' | 'agent'
-  parent_id          CHAR(36),
-  email              VARCHAR(255),
-  phone              VARCHAR(50),
-  website            VARCHAR(255),
-  street             TEXT,
-  city               VARCHAR(100),
-  state_province      VARCHAR(100),
-  postal_code        VARCHAR(20),
-  country_region      VARCHAR(100),
-  description        TEXT,
-  is_active          BOOLEAN NOT NULL DEFAULT TRUE,
-  is_locked          BOOLEAN,
-  owner_id_external  VARCHAR(255),
-  owner_name         VARCHAR(255),
-  created_by_external VARCHAR(255),
-  created_by_name    VARCHAR(255),
-  updated_by_external VARCHAR(255),
-  updated_by_name    VARCHAR(255),
-  created_at_src     DATETIME,
-  updated_at_src      DATETIME,
-  last_action_at_src  DATETIME,
-  linked_module       VARCHAR(100),
-  linked_id_external  VARCHAR(255),
-  tags                JSON DEFAULT (JSON_ARRAY()),
-  do_not_email       BOOLEAN,
-  unsubscribe_method VARCHAR(50),
-  unsubscribe_date_src TEXT,
-  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (parent_id) REFERENCES organizations(id) ON DELETE SET NULL,
-  CONSTRAINT chk_organizations_type CHECK (organization_type IN ('internal', 'vendor', 'agent'))
-);
-
-CREATE INDEX ix_organizations_code ON organizations(code);
-CREATE INDEX ix_organizations_type ON organizations(organization_type);
-CREATE INDEX ix_organizations_type_active ON organizations(organization_type, is_active);
-CREATE INDEX ix_organizations_email ON organizations(email);
-CREATE INDEX ix_organizations_phone ON organizations(phone);
-CREATE INDEX ix_organizations_parent ON organizations(parent_id);
-
--- =====================================
--- Vendor Extensions (供应商扩展表)
--- =====================================
-CREATE TABLE IF NOT EXISTS vendor_extensions (
-  organization_id    CHAR(36) PRIMARY KEY,
-  account_group      VARCHAR(255),
-  category_name      VARCHAR(255),
-  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
-);
-
--- =====================================
--- Agent Extensions (渠道代理扩展表)
--- =====================================
-CREATE TABLE IF NOT EXISTS agent_extensions (
-  organization_id    CHAR(36) PRIMARY KEY,
-  account_group      VARCHAR(255),
-  category_name      VARCHAR(255),
-  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
-);
+-- 注意：必须先创建 users 表，因为 organizations 表有外键引用 users
 
 -- =====================================
 -- Roles (角色表)
@@ -149,6 +76,150 @@ CREATE INDEX ix_users_username ON users(username);
 CREATE INDEX ix_users_phone ON users(phone);
 CREATE INDEX ix_users_active ON users(is_active);
 CREATE INDEX ix_users_wechat ON users(wechat);
+
+-- =====================================
+-- Organizations (统一组织表)
+-- =====================================
+-- Supports: 'internal' (内部组织), 'vendor' (供应商), 'agent' (渠道代理)
+-- 扩展字段：公司规模、性质、类型、领域、国别、logo等
+CREATE TABLE IF NOT EXISTS organizations (
+  id                 CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name               TEXT NOT NULL,
+  code               VARCHAR(255) UNIQUE,
+  external_id        VARCHAR(255) UNIQUE,
+  organization_type  VARCHAR(50) NOT NULL,                     -- 'internal' | 'vendor' | 'agent'
+  parent_id          CHAR(36),
+  
+  -- 基本信息
+  email              VARCHAR(255),
+  phone              VARCHAR(50),
+  website            VARCHAR(255),
+  logo_url           VARCHAR(500),                              -- 公司logo地址
+  description        TEXT,
+  
+  -- 地址信息
+  street             TEXT,
+  city               VARCHAR(100),
+  state_province      VARCHAR(100),
+  postal_code        VARCHAR(20),
+  country_region      VARCHAR(100),                             -- 国家/地区（保留兼容）
+  country            VARCHAR(100),                              -- 国别（ISO 3166-1 alpha-2 或完整国家名）
+  country_code       VARCHAR(10),                              -- 国家代码（如：CN, US, GB）
+  
+  -- 公司属性
+  company_size       VARCHAR(50),                              -- 公司规模：micro, small, medium, large, enterprise
+  company_nature     VARCHAR(50),                              -- 公司性质：state_owned, private, foreign, joint_venture, collective, individual
+  company_type       VARCHAR(50),                              -- 公司类型：limited, unlimited, partnership, sole_proprietorship, other
+  industry           VARCHAR(100),                              -- 行业领域（主行业）
+  industry_code      VARCHAR(50),                               -- 行业代码（如：GB/T 4754-2017）
+  sub_industry       VARCHAR(100),                              -- 细分行业
+  business_scope     TEXT,                                      -- 经营范围
+  
+  -- 工商信息
+  registration_number VARCHAR(100),                            -- 注册号/统一社会信用代码
+  tax_id             VARCHAR(100),                             -- 税号/纳税人识别号
+  legal_representative VARCHAR(255),                           -- 法定代表人
+  established_date   DATE,                                      -- 成立日期
+  registered_capital DECIMAL(18,2),                            -- 注册资本（单位：元）
+  registered_capital_currency VARCHAR(10) DEFAULT 'CNY',      -- 注册资本币种
+  company_status     VARCHAR(50),                             -- 公司状态：normal, cancelled, revoked, liquidated, other
+  
+  -- 财务信息
+  annual_revenue     DECIMAL(18,2),                            -- 年营业额（单位：元）
+  annual_revenue_currency VARCHAR(10) DEFAULT 'CNY',          -- 营业额币种
+  employee_count     INT,                                       -- 员工数量
+  revenue_year       INT,                                       -- 营业额年份
+  
+  -- 认证信息
+  certifications     JSON DEFAULT (JSON_ARRAY()),              -- 认证信息（如：ISO9001, ISO14001等）
+  business_license_url VARCHAR(500),                            -- 营业执照URL
+  tax_certificate_url VARCHAR(500),                            -- 税务登记证URL
+  
+  -- 状态控制
+  is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+  is_locked          BOOLEAN,
+  is_verified        BOOLEAN DEFAULT FALSE,                    -- 是否已认证/审核
+  verified_at        DATETIME,                                  -- 认证时间
+  verified_by        CHAR(36),                                 -- 认证人
+  
+  -- 外部系统关联
+  owner_id_external  VARCHAR(255),
+  owner_name         VARCHAR(255),
+  created_by_external VARCHAR(255),
+  created_by_name    VARCHAR(255),
+  updated_by_external VARCHAR(255),
+  updated_by_name    VARCHAR(255),
+  created_at_src     DATETIME,
+  updated_at_src      DATETIME,
+  last_action_at_src  DATETIME,
+  linked_module       VARCHAR(100),
+  linked_id_external  VARCHAR(255),
+  tags                JSON DEFAULT (JSON_ARRAY()),
+  
+  -- 营销相关
+  do_not_email       BOOLEAN,
+  unsubscribe_method VARCHAR(50),
+  unsubscribe_date_src TEXT,
+  
+  -- 审计字段
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (parent_id) REFERENCES organizations(id) ON DELETE SET NULL,
+  FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT chk_organizations_type CHECK (organization_type IN ('internal', 'vendor', 'agent')),
+  CONSTRAINT chk_organizations_size CHECK (company_size IS NULL OR company_size IN ('micro', 'small', 'medium', 'large', 'enterprise')),
+  CONSTRAINT chk_organizations_nature CHECK (company_nature IS NULL OR company_nature IN ('state_owned', 'private', 'foreign', 'joint_venture', 'collective', 'individual', 'other')),
+  CONSTRAINT chk_organizations_company_type CHECK (company_type IS NULL OR company_type IN ('limited', 'unlimited', 'partnership', 'sole_proprietorship', 'other')),
+  CONSTRAINT chk_organizations_status CHECK (company_status IS NULL OR company_status IN ('normal', 'cancelled', 'revoked', 'liquidated', 'other')),
+  CONSTRAINT chk_organizations_capital_nonneg CHECK (COALESCE(registered_capital, 0) >= 0),
+  CONSTRAINT chk_organizations_revenue_nonneg CHECK (COALESCE(annual_revenue, 0) >= 0),
+  CONSTRAINT chk_organizations_employee_nonneg CHECK (COALESCE(employee_count, 0) >= 0)
+);
+
+-- 基础索引
+CREATE INDEX ix_organizations_code ON organizations(code);
+CREATE INDEX ix_organizations_type ON organizations(organization_type);
+CREATE INDEX ix_organizations_type_active ON organizations(organization_type, is_active);
+CREATE INDEX ix_organizations_email ON organizations(email);
+CREATE INDEX ix_organizations_phone ON organizations(phone);
+CREATE INDEX ix_organizations_parent ON organizations(parent_id);
+
+-- 新增字段索引
+CREATE INDEX ix_organizations_country ON organizations(country);
+CREATE INDEX ix_organizations_country_code ON organizations(country_code);
+CREATE INDEX ix_organizations_size ON organizations(company_size);
+CREATE INDEX ix_organizations_nature ON organizations(company_nature);
+CREATE INDEX ix_organizations_industry ON organizations(industry);
+CREATE INDEX ix_organizations_registration ON organizations(registration_number);
+CREATE INDEX ix_organizations_tax_id ON organizations(tax_id);
+CREATE INDEX ix_organizations_status ON organizations(company_status);
+CREATE INDEX ix_organizations_verified ON organizations(is_verified);
+CREATE INDEX ix_organizations_employee_count ON organizations(employee_count);
+
+-- =====================================
+-- Vendor Extensions (供应商扩展表)
+-- =====================================
+CREATE TABLE IF NOT EXISTS vendor_extensions (
+  organization_id    CHAR(36) PRIMARY KEY,
+  account_group      VARCHAR(255),
+  category_name      VARCHAR(255),
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+);
+
+-- =====================================
+-- Agent Extensions (渠道代理扩展表)
+-- =====================================
+CREATE TABLE IF NOT EXISTS agent_extensions (
+  organization_id    CHAR(36) PRIMARY KEY,
+  account_group      VARCHAR(255),
+  category_name      VARCHAR(255),
+  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE
+);
 
 -- =====================================
 -- User Roles (用户角色关联表)

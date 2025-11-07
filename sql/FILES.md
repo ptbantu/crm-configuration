@@ -2,6 +2,22 @@
 
 ## 文件列表
 
+### 种子数据文件
+
+- **`seed_data.sql`** - 种子数据 SQL 文件
+  - 包含 BANTU 根组织的初始化数据
+  - 组织编码: BANTU
+  - 组织 ID: 00000000-0000-0000-0000-000000000001（固定 UUID）
+  - 用于系统初始化，所有用户创建都需要依赖此组织
+  - 使用方法: `mysql -u user -p database < sql/seed_data.sql`
+  - 或使用导入脚本: `cd k8s && ./import-seed-data.sh`
+
+- **`README_SEED_DATA.md`** - 种子数据说明文档
+  - 详细说明种子数据的内容和使用方法
+  - 包含验证和扩展说明
+
+---
+
 ### Schema 文件（按推荐顺序）
 
 1. **schema_unified.sql** ⭐ **推荐使用**
