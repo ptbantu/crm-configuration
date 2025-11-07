@@ -4,8 +4,8 @@ digraph BANTU_CRM {
   
   // User & Role Domain
   organizations [label="organizations|id (PK)\lname\lcode (UNIQUE)\lorganization_type\lparent_id (FK)\lemail\lphone\lwebsite\lis_active\lcreated_at\lupdated_at"];
-  organization_employees [label="organization_employees|id (PK)\lorganization_id (FK)\luser_id (FK)\lfirst_name\llast_name\lemail\lphone\lposition\ldepartment\lemployee_number\lis_primary\lis_manager\lis_decision_maker\lis_active\lcreated_at\lupdated_at"];
-  users [label="users|id (PK)\lusername\lemail\lphone\lpassword_hash\ldisplay_name\lorganization_id (FK)\lis_active\lcreated_at\lupdated_at"];
+  organization_employees [label="organization_employees|id (PK)\lorganization_id (FK) NOT NULL\luser_id (FK) NOT NULL\lfirst_name\llast_name\lfull_name\lemail\lphone\lposition\ldepartment\lemployee_number\lis_primary\lis_manager\lis_decision_maker\lis_active\lcreated_at\lupdated_at"];
+  users [label="users|id (PK)\lusername (not unique)\lemail (UNIQUE)\lphone\ldisplay_name\lpassword_hash\lavatar_url\lbio\lgender\laddress\lcontact_phone\lwhatsapp\lwechat\lis_active\llast_login_at\lcreated_at\lupdated_at"];
   roles [label="roles|id (PK)\lcode (UNIQUE)\lname\ldescription\lcreated_at\lupdated_at"];
   user_roles [label="user_roles|user_id (FK)\lrole_id (FK)"];
   
@@ -35,11 +35,10 @@ digraph BANTU_CRM {
   // Relationships
   // User & Role
   organizations -> organizations [label="parent_id" style=dashed];
-  organizations -> organization_employees [label="organization_id"];
-  users -> organization_employees [label="user_id"];
+  organizations -> organization_employees [label="organization_id" dir=both];
+  users -> organization_employees [label="user_id (required)" dir=both];
   users -> user_roles [label="user_id"];
   roles -> user_roles [label="role_id"];
-  organizations -> users [label="organization_id" style=dashed];
   
   // Product Domain
   organizations -> products [label="vendor_id" style=dashed];

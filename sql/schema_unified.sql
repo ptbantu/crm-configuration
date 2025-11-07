@@ -1,10 +1,15 @@
 -- ============================================================
--- BANTU CRM Database Schema (MySQL Version)
+-- BANTU CRM Database Schema (Unified MySQL Version)
 -- ============================================================
 -- Complete database schema for BANTU Enterprise Services CRM
 -- Unified schema with all tables, constraints, indexes, and triggers
 -- 
--- Usage: mysql -u user -p database < sql/schema_mysql.sql
+-- Usage: mysql -u user -p database < sql/schema_unified.sql
+-- 
+-- Changes:
+-- - Users table: username is NOT unique, only email is unique
+-- - Users table: Added avatar_url, bio, gender, address, contact_phone, whatsapp, wechat
+-- - All field names use snake_case convention
 -- ============================================================
 
 -- ============================================================
@@ -25,15 +30,15 @@ CREATE TABLE IF NOT EXISTS organizations (
   code               VARCHAR(255) UNIQUE,
   external_id        VARCHAR(255) UNIQUE,
   organization_type  VARCHAR(50) NOT NULL,                     -- 'internal' | 'vendor' | 'agent'
-  parent_id         CHAR(36),
+  parent_id          CHAR(36),
   email              VARCHAR(255),
   phone              VARCHAR(50),
   website            VARCHAR(255),
   street             TEXT,
   city               VARCHAR(100),
-  state_province     VARCHAR(100),
+  state_province      VARCHAR(100),
   postal_code        VARCHAR(20),
-  country_region     VARCHAR(100),
+  country_region      VARCHAR(100),
   description        TEXT,
   is_active          BOOLEAN NOT NULL DEFAULT TRUE,
   is_locked          BOOLEAN,
@@ -44,11 +49,11 @@ CREATE TABLE IF NOT EXISTS organizations (
   updated_by_external VARCHAR(255),
   updated_by_name    VARCHAR(255),
   created_at_src     DATETIME,
-  updated_at_src     DATETIME,
-  last_action_at_src DATETIME,
-  linked_module      VARCHAR(100),
-  linked_id_external VARCHAR(255),
-  tags               JSON DEFAULT (JSON_ARRAY()),
+  updated_at_src      DATETIME,
+  last_action_at_src  DATETIME,
+  linked_module       VARCHAR(100),
+  linked_id_external  VARCHAR(255),
+  tags                JSON DEFAULT (JSON_ARRAY()),
   do_not_email       BOOLEAN,
   unsubscribe_method VARCHAR(50),
   unsubscribe_date_src TEXT,
@@ -58,7 +63,6 @@ CREATE TABLE IF NOT EXISTS organizations (
   CONSTRAINT chk_organizations_type CHECK (organization_type IN ('internal', 'vendor', 'agent'))
 );
 
--- Create indexes (drop if exists first for idempotency)
 CREATE INDEX ix_organizations_code ON organizations(code);
 CREATE INDEX ix_organizations_type ON organizations(organization_type);
 CREATE INDEX ix_organizations_type_active ON organizations(organization_type, is_active);
@@ -115,34 +119,36 @@ FROM (
 WHERE NOT EXISTS (SELECT 1 FROM roles r WHERE r.code = v.code);
 
 -- =====================================
--- Users (用户表)
+-- Users (用户表) - 系统登录账户
 -- =====================================
+-- 职责：管理可以登录系统的用户账户信息
+-- 注意：每个用户必须至少有一个 organization_employees 记录
 CREATE TABLE IF NOT EXISTS users (
-  id              CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  username        VARCHAR(255) NOT NULL,                     -- NOT UNIQUE: can be duplicated across organizations
-  email           VARCHAR(255) UNIQUE,                       -- Global unique (nullable)
-  phone           VARCHAR(50),
-  display_name    VARCHAR(255),
-  password_hash   VARCHAR(255),
-  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-  company_name    VARCHAR(255),
-  user_type       VARCHAR(50),
-  id_external     VARCHAR(255) UNIQUE,
-  organization_id CHAR(36),
-  last_login_at   DATETIME,
-  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
+  id                CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  username          VARCHAR(255) NOT NULL,                    -- 用户名（用于登录，不唯一）
+  email             VARCHAR(255) UNIQUE,                      -- 全局唯一邮箱（用于登录，可空）
+  phone             VARCHAR(50),                              -- 手机号（用于登录验证，可空）
+  display_name      VARCHAR(255),                             -- 显示名称
+  password_hash     VARCHAR(255),                             -- 密码哈希（登录凭证）
+  avatar_url        VARCHAR(500),                             -- 头像地址
+  bio               TEXT,                                     -- 个人简介
+  gender            VARCHAR(10),                              -- 性别：male, female, other
+  address           TEXT,                                     -- 住址
+  contact_phone     VARCHAR(50),                              -- 联系电话
+  whatsapp          VARCHAR(50),                              -- WhatsApp 号码
+  wechat            VARCHAR(100),                             -- 微信号
+  is_active         BOOLEAN NOT NULL DEFAULT TRUE,          -- 是否激活（控制登录权限）
+  last_login_at     DATETIME,                                 -- 最后登录时间
+  created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Username uniqueness at organization level
-CREATE UNIQUE INDEX ux_users_organization_username
-  ON users(organization_id, username);
-
-CREATE INDEX ix_users_email ON users(email);
+-- 邮箱用于登录，需要唯一性索引（用户名不唯一）
+CREATE UNIQUE INDEX ux_users_email ON users(email);
+CREATE INDEX ix_users_username ON users(username);
 CREATE INDEX ix_users_phone ON users(phone);
-CREATE INDEX ix_users_organization ON users(organization_id);
-CREATE INDEX ix_users_organization_username ON users(organization_id, username);
+CREATE INDEX ix_users_active ON users(is_active);
+CREATE INDEX ix_users_wechat ON users(wechat);
 
 -- =====================================
 -- User Roles (用户角色关联表)
@@ -156,51 +162,62 @@ CREATE TABLE IF NOT EXISTS user_roles (
 );
 
 -- =====================================
--- Organization Employees (统一组织员工表)
+-- Organization Employees (组织员工表) - 用户表的扩展
 -- =====================================
+-- 职责：作为用户表的扩展，记录用户在组织中的详细信息
+-- 约束：每个用户必须至少有一个 organization_employees 记录（业务逻辑约束）
+-- 注意：所有组织成员信息（职位、部门、联系方式等）都在此表中
 CREATE TABLE IF NOT EXISTS organization_employees (
   id                      CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  organization_id         CHAR(36) NOT NULL,
-  user_id                 CHAR(36),
-  first_name              VARCHAR(255),
-  last_name               VARCHAR(255),
-  full_name               VARCHAR(510) GENERATED ALWAYS AS (CONCAT(first_name, ' ', last_name)) STORED,
-  email                   VARCHAR(255),
-  phone                   VARCHAR(50),
-  position                VARCHAR(255),
-  department              VARCHAR(255),
-  employee_number         VARCHAR(100),
-  is_primary              BOOLEAN DEFAULT FALSE,
-  is_manager              BOOLEAN DEFAULT FALSE,
-  is_decision_maker       BOOLEAN DEFAULT FALSE,
-  is_active               BOOLEAN NOT NULL DEFAULT TRUE,
-  joined_at               DATE,
-  left_at                 DATE,
-  id_external             VARCHAR(255),
-  external_user_id        VARCHAR(255),
-  notes                   TEXT,
-  created_by              CHAR(36),
-  updated_by              CHAR(36),
+  user_id                 CHAR(36) NOT NULL,                  -- 必须关联用户（每个成员必须是组织成员）
+  organization_id         CHAR(36) NOT NULL,                  -- 所属组织
+  first_name              VARCHAR(255),                     -- 名字（可选，可从 users.display_name 派生）
+  last_name               VARCHAR(255),                     -- 姓氏（可选）
+  full_name               VARCHAR(510) GENERATED ALWAYS AS (CONCAT(IFNULL(first_name, ''), ' ', IFNULL(last_name, ''))) STORED,
+  email                   VARCHAR(255),                     -- 工作邮箱（可与 users.email 不同）
+  phone                   VARCHAR(50),                      -- 工作电话（可与 users.phone 不同）
+  position                VARCHAR(255),                     -- 职位
+  department              VARCHAR(255),                    -- 部门
+  employee_number         VARCHAR(100),                    -- 工号
+  is_primary              BOOLEAN DEFAULT FALSE,           -- 是否用户的主要组织
+  is_manager              BOOLEAN DEFAULT FALSE,           -- 是否管理者
+  is_decision_maker       BOOLEAN DEFAULT FALSE,           -- 是否决策人（vendor/agent）
+  is_active               BOOLEAN NOT NULL DEFAULT TRUE,  -- 是否在职
+  joined_at               DATE,                            -- 入职日期
+  left_at                 DATE,                            -- 离职日期
+  id_external             VARCHAR(255),                    -- 外部系统ID
+  external_user_id        VARCHAR(255),                    -- 外部用户ID
+  notes                   TEXT,                             -- 备注
+  created_by              CHAR(36),                        -- 创建人
+  updated_by              CHAR(36),                       -- 更新人
   created_at              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at              DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,  -- 删除用户时级联删除员工记录
   FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
   FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- 索引：组织查询
 CREATE INDEX ix_organization_employees_org ON organization_employees(organization_id);
+CREATE INDEX ix_organization_employees_org_active ON organization_employees(organization_id, is_active);
+
+-- 索引：用户查询
 CREATE INDEX ix_organization_employees_user ON organization_employees(user_id);
-CREATE INDEX ix_organization_employees_active ON organization_employees(organization_id, user_id);
-CREATE INDEX ix_organization_employees_primary ON organization_employees(user_id);
+CREATE INDEX ix_organization_employees_user_active ON organization_employees(user_id, is_active);
+
+-- 索引：主要组织查询
+CREATE INDEX ix_organization_employees_primary ON organization_employees(user_id, is_primary, is_active);
+
+-- 索引：联系方式查询
 CREATE INDEX ix_organization_employees_email ON organization_employees(email);
 CREATE INDEX ix_organization_employees_phone ON organization_employees(phone);
 
-CREATE UNIQUE INDEX ux_organization_employees_one_primary_per_user
-  ON organization_employees(user_id);
+-- 唯一约束：每个用户只能有一个主要组织（通过应用层或触发器保证，MySQL 不支持部分唯一索引）
+-- 注意：需要在应用层或触发器中确保 is_primary=TRUE AND is_active=TRUE 时，每个用户只有一条记录
 
-CREATE UNIQUE INDEX ux_organization_employees_user_org_active
-  ON organization_employees(organization_id, user_id);
+-- 唯一约束：同一用户在同一组织只能有一条激活的员工记录（通过应用层保证）
+-- 注意：需要在应用层确保 is_active=TRUE 时，同一用户在同一组织只有一条记录
 
 -- ============================================================
 -- 2. Product Domain
@@ -301,7 +318,7 @@ CREATE TABLE IF NOT EXISTS customers (
   owner_id_external         VARCHAR(255),
   owner_name                VARCHAR(255),
   created_by_external       VARCHAR(255),
-  created_by_name          VARCHAR(255),
+  created_by_name           VARCHAR(255),
   updated_by_external       VARCHAR(255),
   updated_by_name           VARCHAR(255),
   created_at_src            DATETIME,
@@ -309,11 +326,11 @@ CREATE TABLE IF NOT EXISTS customers (
   last_action_at_src        DATETIME,
   change_log_at_src         DATETIME,
   linked_module             VARCHAR(100),
-  linked_id_external         VARCHAR(255),
+  linked_id_external        VARCHAR(255),
   name                      VARCHAR(255) NOT NULL,
   code                      VARCHAR(100),
   level                     VARCHAR(50),
-  parent_id_external        VARCHAR(255),
+  parent_id_external       VARCHAR(255),
   parent_customer_id        CHAR(36),
   parent_name               VARCHAR(255),
   industry                  VARCHAR(255),
@@ -343,13 +360,6 @@ CREATE TABLE IF NOT EXISTS customers (
   CONSTRAINT chk_customer_source_type CHECK (customer_source_type IN ('own', 'agent')),
   CONSTRAINT chk_customer_type CHECK (customer_type IN ('individual', 'organization'))
 );
-
--- Note: The following CHECK constraints were removed due to MySQL limitation
--- (cannot use foreign key columns in CHECK constraints):
--- - chk_customer_ownership (uses owner_user_id, agent_user_id - both foreign keys)
--- - chk_customers_agent_id_not_null (uses agent_id - foreign key)
--- - chk_customers_owner_user_id_not_null (uses owner_user_id - foreign key)
--- These validations should be enforced at application level
 
 CREATE UNIQUE INDEX ux_customers_code ON customers(code);
 CREATE INDEX ix_customers_source_type ON customers(customer_source_type);
@@ -419,7 +429,7 @@ CREATE TABLE IF NOT EXISTS visa_records (
   updated_at_src          DATETIME,
   last_action_at_src      DATETIME,
   linked_module           VARCHAR(100),
-  linked_id_external       VARCHAR(255),
+  linked_id_external      VARCHAR(255),
   customer_name           VARCHAR(255) NOT NULL,
   customer_id             CHAR(36),
   passport_id             VARCHAR(100),
@@ -428,7 +438,7 @@ CREATE TABLE IF NOT EXISTS visa_records (
   fx_rate                 DECIMAL(18,9),
   payment_amount          DECIMAL(18,2),
   cancel_method           VARCHAR(50),
-  cancel_date_src         TEXT,
+  cancel_date_src          TEXT,
   is_locked               BOOLEAN,
   tags                    JSON,
   processor_name          VARCHAR(255),
@@ -550,12 +560,6 @@ CREATE TABLE IF NOT EXISTS order_assignments (
   FOREIGN KEY (organization_employee_id) REFERENCES organization_employees(id) ON DELETE SET NULL,
   FOREIGN KEY (vendor_employee_id) REFERENCES organization_employees(id) ON DELETE SET NULL
 );
-
--- Note: The following CHECK constraints were removed due to MySQL limitation
--- (cannot use foreign key columns in CHECK constraints):
--- - chk_order_assignments_vendor (uses vendor_id, organization_employee_id - both foreign keys)
--- - chk_order_assignments_operation (uses assigned_to_user_id - foreign key)
--- These validations should be enforced at application level
 
 CREATE INDEX ix_order_assignments_order ON order_assignments(order_id);
 CREATE INDEX ix_order_assignments_user ON order_assignments(assigned_to_user_id);

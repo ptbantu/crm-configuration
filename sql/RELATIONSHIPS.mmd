@@ -25,10 +25,11 @@ erDiagram
     
     organization_employees {
         uuid id PK
-        uuid organization_id FK
-        uuid user_id FK
+        uuid user_id FK "NOT NULL"
+        uuid organization_id FK "NOT NULL"
         text first_name
         text last_name
+        text full_name
         text email
         text phone
         text position
@@ -49,10 +50,17 @@ erDiagram
         text username
         text email UK
         text phone
-        text password_hash
         text display_name
-        uuid organization_id FK
+        text password_hash
+        text avatar_url
+        text bio
+        text gender
+        text address
+        text contact_phone
+        text whatsapp
+        text wechat
         boolean is_active
+        timestamptz last_login_at
         timestamptz created_at
         timestamptz updated_at
     }
@@ -261,9 +269,8 @@ erDiagram
     %% Relationships
     %% User & Role
     organizations ||--o| organizations : "parent"
-    organizations ||--o{ organization_employees : "has"
-    users ||--o{ organization_employees : "member"
-    users ||--o| organizations : "primary (organization_id)"
+    organizations ||--|| organization_employees : "has"
+    users ||--|| organization_employees : "member (required)"
     users ||--o{ user_roles : "has"
     roles ||--o{ user_roles : "has"
     

@@ -1,25 +1,33 @@
 # BANTU CRM 数据库结构文档
 
-## 迁移约定
+## 文件说明
 
-- **文件结构**: 
-  - `schema.sql` - 完整的数据库架构文件（包含所有表、约束、索引、触发器、视图）
-  - `README.md` - 数据库结构文档
-  - `RELATIONSHIPS.*` - ER 关系图文件（.dot, .mmd, .png, .svg, .txt）
-
-- **语法**: PostgreSQL 语法
-- **幂等性**: 使用 `IF NOT EXISTS`、检查约束是否存在等确保幂等，可多次安全执行
+- **schema_unified.sql** - **推荐使用**，MySQL 版本的统一 schema 文件（最新）
+- **schema_mysql.sql** - MySQL 版本（已更新，保持兼容）
+- **schema.sql** - PostgreSQL 版本（已更新，保持兼容）
+- **README.md** - 数据库结构文档
+- **RELATIONSHIPS.*** - ER 关系图文件（.dot, .mmd, .png, .svg, .txt）
 
 ## 执行顺序
 
-### 推荐方式：使用整合的 schema.sql
+### MySQL 版本（推荐）
 
 ```bash
-# 执行完整的数据库架构（推荐）
+# 使用统一的 schema 文件（推荐）
+mysql -u user -p database < sql/schema_unified.sql
+
+# 或使用 K8s 导入脚本（会自动清空数据库）
+./k8s/import-schema-mysql.sh
+```
+
+### PostgreSQL 版本
+
+```bash
+# 执行完整的数据库架构
 psql "$DATABASE_URL" -f sql/schema.sql
 ```
 
-**注意**：所有数据库结构已整合到 `schema.sql` 中，包含所有表、约束、索引、触发器和视图定义。
+**注意**：所有数据库结构已整合到各自的 schema 文件中，包含所有表、约束、索引、触发器和视图定义。
 
 ## 数据库表结构
 
@@ -48,36 +56,40 @@ psql "$DATABASE_URL" -f sql/schema.sql
 - **关键字段**: `organization_id`, `account_group`, `category_name`
 - **关联**: `organization_id` → organizations (organization_type = 'agent')
 
-#### 4. organization_employees（统一组织员工表）
-- **用途**: 统一管理所有组织的员工信息（内部、供应商、代理）
+#### 4. organization_employees（组织员工表）- 用户表的扩展
+- **用途**: 作为用户表的扩展，记录用户在组织中的详细信息
 - **关键字段**: 
-  - `id`, `organization_id`, `user_id` (可选)
-  - `first_name`, `last_name`: 名字（vendor/agent 员工需要）
-  - `email`, `phone`: 联系方式
+  - `id`, `organization_id`, `user_id` (**必填**，每个成员必须是组织成员)
+  - `first_name`, `last_name`: 名字（可选）
+  - `email`, `phone`: 工作联系方式（可与 users 表不同）
   - `position`: 职位
   - `department`: 部门
   - `employee_number`: 工号
-  - `is_primary`: 是否主要组织/联系人
-  - `is_manager`: 是否管理者（主要用于内部组织）
-  - `is_decision_maker`: 是否决策人（主要用于 vendor/agent）
+  - `is_primary`: 是否用户的主要组织
+  - `is_manager`: 是否管理者
+  - `is_decision_maker`: 是否决策人（vendor/agent）
   - `is_active`: 是否在职
 - **关联**: 
   - `organization_id` → organizations
-  - `user_id` → users (可选，内部组织必须，vendor/agent 可选)
+  - `user_id` → users (**必填**，每个成员必须关联用户)
 - **约束**: 
-  - 内部组织的员工必须关联到系统用户 (`user_id` IS NOT NULL)
-  - vendor/agent 员工如果没有 `user_id`，必须有 `first_name` 和 `last_name`
+  - 每个用户必须至少有一个 `organization_employees` 记录（业务逻辑约束）
+  - 每个用户只能有一个主要组织（`is_primary = TRUE AND is_active = TRUE`）
+  - 同一用户在同一组织只能有一条激活的员工记录
 
-#### 5. users（用户表）
-- **用途**: 系统用户信息
-- **关键字段**: `id`, `username`, `email`, `phone`, `password_hash`, `organization_id`
+#### 5. users（用户表）- 系统登录账户
+- **用途**: 管理可以登录系统的用户账户信息
+- **关键字段**: 
+  - `id`, `username`, `email`, `phone`, `password_hash`, `display_name`
+  - `avatar_url`, `bio`, `gender`, `address`, `contact_phone`, `whatsapp`, `wechat`
+  - `is_active`, `last_login_at`
 - **唯一约束**: 
-  - `username` 在同一组织内唯一（`organization_id, username`）
-  - `email` 全局唯一（可空）
+  - `username` **不唯一**（可以重复，用于登录）
+  - `email` **全局唯一**（可空，用于登录）
 - **关联**: 
-  - `organization_id` → organizations (主要组织，快速访问)
   - 通过 `user_roles` 关联到 `roles`
-  - 通过 `organization_employees` 关联到多个组织
+  - 通过 `organization_employees` 关联到组织（每个用户必须至少有一个组织员工记录）
+- **注意**: 每个用户必须至少有一个 `organization_employees` 记录
 
 #### 6. roles（角色表）
 - **用途**: 系统角色定义（全局）
