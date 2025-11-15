@@ -1,78 +1,213 @@
-# MySQL Kubernetes 部署
+# Kubernetes 部署配置
 
-## 部署说明
+本目录包含 BANTU CRM 系统在 Kubernetes 集群中的部署配置文件。
 
-最简单的 MySQL 部署方式，数据持久化到 `/home/bantu/bantu-data/mysql`。
+## 📁 目录结构
 
-## 文件说明
+```
+k8s/
+├── mysql/              # MySQL 数据库服务
+│   ├── mysql-secret.yaml
+│   ├── mysql-pv.yaml
+│   ├── mysql-pvc.yaml
+│   ├── mysql-deployment.yaml
+│   ├── mysql-service.yaml
+│   └── deploy-mysql.sh
+│
+├── activiti/           # Activiti 工作流引擎
+│   ├── activiti-configmap.yaml
+│   ├── activiti-deployment.yaml
+│   ├── activiti-deployment-simple.yaml
+│   ├── activiti-service.yaml
+│   ├── activiti-ingress.yaml
+│   ├── activiti-dockerfile
+│   ├── deploy-activiti.sh
+│   ├── README-activiti.md
+│   └── BUILD-ACTIVITI.md
+│
+├── crm-services/       # CRM 微服务（Gateway, Foundation, Business, Workflow, Finance）
+│   ├── crm-deployments.yaml
+│   ├── crm-services.yaml
+│   ├── deploy-all-services.sh
+│   └── README-microservices.md
+│
+├── scripts/            # 数据库初始化脚本
+│   ├── import-schema-mysql.sh
+│   └── import-seed-data.sh
+│
+└── docs/               # 文档
+    └── README-k8s.md   # 原始 K8s 部署说明
+```
 
-- `mysql-secret.yaml` - MySQL 认证信息（root 密码、数据库名、用户密码）
-- `mysql-pv.yaml` - PersistentVolume，指向本地路径
-- `mysql-pvc.yaml` - PersistentVolumeClaim，绑定 PV
-- `mysql-deployment.yaml` - MySQL Deployment 配置
-- `mysql-service.yaml` - MySQL Service（ClusterIP）
+## 🚀 快速开始
 
-## 部署步骤
-
-### 方式一：使用自动部署脚本（推荐）
+### 1. 部署 MySQL 数据库
 
 ```bash
-cd /home/bantu/crm-configuration/k8s
+cd mysql
 ./deploy-mysql.sh
 ```
 
-脚本会自动：
-- 检测节点名并生成 PV 配置
-- 创建数据目录
-- 按顺序部署所有资源
-- 等待 Pod 就绪并显示状态
-
-### 方式二：手动部署
+### 2. 初始化数据库 Schema
 
 ```bash
-# 1. 确保数据目录存在
-mkdir -p /home/bantu/bantu-data/mysql
-chmod 777 /home/bantu/bantu-data/mysql
+cd ../scripts
+./import-schema-mysql.sh
+```
 
-# 2. 获取节点名称
-kubectl get nodes
+### 3. 导入种子数据
 
-# 3. 编辑 mysql-pv.yaml，取消注释 nodeAffinity 并填入节点名
+```bash
+./import-seed-data.sh
+```
 
-# 4. 按顺序部署
-kubectl apply -f mysql-secret.yaml
-kubectl apply -f mysql-pv.yaml
-kubectl apply -f mysql-pvc.yaml
-kubectl apply -f mysql-deployment.yaml
-kubectl apply -f mysql-service.yaml
+### 4. 部署 Activiti 工作流引擎（可选）
 
-# 5. 检查状态
+```bash
+cd ../activiti
+./deploy-activiti.sh
+```
+
+### 5. 部署 CRM 微服务
+
+```bash
+cd ../crm-services
+./deploy-all-services.sh
+```
+
+## 📋 部署顺序
+
+1. **MySQL** - 数据库服务（必须先部署）
+2. **数据库初始化** - 导入 Schema 和种子数据
+3. **Activiti** - 工作流引擎（可选）
+4. **CRM 微服务** - Gateway、Foundation、Business、Workflow、Finance
+
+## 🔍 服务访问
+
+### 集群内访问
+
+- **MySQL**: `mysql.default.svc.cluster.local:3306`
+- **Gateway**: `crm-gateway:8080`
+- **Foundation Service**: `crm-foundation-service:8081`
+- **Business Service**: `crm-business-service:8082`
+- **Workflow Service**: `crm-workflow-service:8083`
+- **Finance Service**: `crm-finance-service:8084`
+- **Activiti**: `activiti:8080`
+
+### 本地访问（端口转发）
+
+```bash
+# Gateway
+kubectl port-forward svc/crm-gateway 8080:8080
+
+# MySQL
+kubectl port-forward svc/mysql 3306:3306
+
+# Activiti
+kubectl port-forward svc/activiti 8080:8080
+```
+
+## 📚 详细文档
+
+- **MySQL 部署**: 查看 `mysql/` 目录中的文件或运行 `./deploy-mysql.sh` 查看帮助
+- **Activiti 部署**: 查看 `activiti/README-activiti.md`
+- **CRM 微服务**: 查看 `crm-services/README-microservices.md`
+- **数据库脚本**: 查看 `scripts/` 目录中的脚本注释
+
+## 🔧 常用命令
+
+### 查看服务状态
+
+```bash
+# 查看所有 Pod
+kubectl get pods
+
+# 查看所有 Service
+kubectl get svc
+
+# 查看 MySQL 相关资源
 kubectl get pv,pvc,pods,svc -l app=mysql
 
-# 6. 查看日志（如有问题）
-kubectl logs -l app=mysql
+# 查看 CRM 服务
+kubectl get deployments,svc -l 'service in (gateway,foundation,business,workflow,finance)'
 ```
 
-## 连接信息
+### 查看日志
 
-- **Service 名称**: `mysql.default.svc.cluster.local` (集群内)
-- **端口**: 3306
-- **数据库名**: `bantu_crm`
-- **Root 用户**: `root` / `bantu_root_password_2024`
-- **应用用户**: `bantu_user` / `bantu_user_password_2024`
-
-## 注意事项
-
-1. **节点亲和性**: PV 使用 local volume，需要指定节点。如果节点名未填，需要手动编辑 `mysql-pv.yaml`。
-2. **权限**: 确保 `/home/bantu/bantu-data/mysql` 目录对容器有读写权限。
-3. **首次启动**: MySQL 首次启动可能需要 30-60 秒初始化。
-4. **备份**: 数据存储在 `/home/bantu/bantu-data/mysql`，建议定期备份该目录。
-
-## 修改密码
-
-编辑 `mysql-secret.yaml` 后重新应用：
 ```bash
-kubectl apply -f mysql-secret.yaml
-kubectl delete pod -l app=mysql  # 重启 Pod 使新配置生效
+# MySQL 日志
+kubectl logs -l app=mysql
+
+# Gateway 日志
+kubectl logs -l service=gateway
+
+# Activiti 日志
+kubectl logs -l app=activiti
 ```
+
+### 删除服务
+
+```bash
+# 删除 CRM 服务
+kubectl delete -f crm-services/
+
+# 删除 Activiti
+kubectl delete -f activiti/
+
+# 删除 MySQL（⚠️ 注意：会删除数据）
+kubectl delete -f mysql/
+```
+
+## ⚠️ 注意事项
+
+1. **部署顺序**: MySQL 必须先部署，其他服务依赖它
+2. **数据持久化**: MySQL 数据存储在 `/home/bantu/bantu-data/mysql`，请定期备份
+3. **资源限制**: 根据集群资源调整各服务的 CPU/内存限制
+4. **网络策略**: 确保集群内服务可以互相访问
+5. **Secret 管理**: 生产环境请使用更安全的 Secret 管理方式
+
+## 🐛 故障排查
+
+### MySQL 无法启动
+
+```bash
+# 检查 Pod 状态
+kubectl describe pod -l app=mysql
+
+# 查看日志
+kubectl logs -l app=mysql
+
+# 检查 PV/PVC
+kubectl get pv,pvc
+```
+
+### 服务无法连接 MySQL
+
+```bash
+# 检查 MySQL Service
+kubectl get svc mysql
+
+# 测试连接
+kubectl run -it --rm mysql-client --image=mysql:8.0 --restart=Never -- mysql -h mysql -u root -p
+```
+
+### 服务启动失败
+
+```bash
+# 查看 Pod 事件
+kubectl describe pod <pod-name>
+
+# 查看日志
+kubectl logs <pod-name>
+
+# 检查 ConfigMap 和 Secret
+kubectl get configmap,secret
+```
+
+## 📝 更新日志
+
+- **2024-11-15**: 重构目录结构，按服务分类组织文件
+- **2024-11-06**: 添加 CRM 微服务部署配置
+- **2024-11-05**: 添加 Activiti 工作流引擎部署
+- **2024-11-04**: 初始 MySQL 部署配置
 

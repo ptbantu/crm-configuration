@@ -42,9 +42,37 @@ spec:
             secretKeyRef:
               name: mysql-secret
               key: MYSQL_PASSWORD
+        # 数据库连接信息（从 ConfigMap 获取）
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: DB_NAME
+        - name: DB_CHARSET
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: DB_CHARSET
+        - name: DB_COLLATION
+          valueFrom:
+            configMapKeyRef:
+              name: mysql-config
+              key: DB_COLLATION
         volumeMounts:
         - name: mysql-data
           mountPath: /var/lib/mysql
+        - name: init-scripts
+          mountPath: /docker-entrypoint-initdb.d
         resources:
           requests:
             memory: "512Mi"
@@ -56,4 +84,8 @@ spec:
       - name: mysql-data
         persistentVolumeClaim:
           claimName: mysql-pvc
+      - name: init-scripts
+        hostPath:
+          path: /home/bantu/crm-backend-python/init-scripts
+          type: Directory
 

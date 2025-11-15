@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: default
+  labels:
+    app: mysql
+data:
+  # 数据库连接信息（非敏感信息）
+  DB_HOST: "mysql.default.svc.cluster.local"
+  DB_PORT: "3306"
+  DB_NAME: "bantu_crm"
+  DB_USER: "bantu_user"
+  DB_ROOT_USER: "root"
+  
+  # 字符集配置
+  DB_CHARSET: "utf8mb4"
+  DB_COLLATION: "utf8mb4_unicode_ci"
+  
+  # 连接池配置
+  DB_POOL_MAX_CONNECTIONS: "20"
+  DB_POOL_MIN_CONNECTIONS: "5"
+  DB_POOL_TIMEOUT: "30"
+  
+  # 连接字符串（不含密码，密码从 Secret 获取）
+  DB_CONNECTION_STRING: "mysql://mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4"
+  DB_JDBC_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4&useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  
+  # Activiti 配置
+  ACTIVITI_DB_HOST: "mysql"
+  ACTIVITI_DB_PORT: "3306"
+  ACTIVITI_DB_NAME: "bantu_crm"
+  ACTIVITI_JDBC_URL: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  ACTIVITI_DRIVER_CLASS: "com.mysql.cj.jdbc.Driver"
+  
+  # Activiti 连接池配置
+  ACTIVITI_POOL_MAX_SIZE: "10"
+  ACTIVITI_POOL_MIN_IDLE: "5"
+  ACTIVITI_POOL_CONNECTION_TIMEOUT: "30000"
+  ACTIVITI_POOL_IDLE_TIMEOUT: "600000"
+  ACTIVITI_POOL_MAX_LIFETIME: "1800000"
+  
+  # Activiti 特定配置
+  ACTIVITI_DB_SCHEMA_UPDATE: "true"
+  ACTIVITI_ASYNC_EXECUTOR_ACTIVATE: "true"
+  ACTIVITI_HISTORY_LEVEL: "full"
+  ACTIVITI_CHECK_PROCESS_DEFINITIONS: "true"
+

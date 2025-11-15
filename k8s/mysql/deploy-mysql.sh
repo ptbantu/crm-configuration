@@ -17,6 +17,17 @@ echo "检测到节点名: $NODE_NAME"
 mkdir -p /home/bantu/bantu-data/mysql
 chmod 777 /home/bantu/bantu-data/mysql  # 确保容器有权限
 
+# 检查 init-scripts 目录
+INIT_SCRIPTS_DIR="/home/bantu/crm-backend-python/init-scripts"
+if [ ! -d "$INIT_SCRIPTS_DIR" ]; then
+  echo "⚠️  警告: init-scripts 目录不存在: $INIT_SCRIPTS_DIR"
+  echo "MySQL 将无法自动执行初始化脚本"
+else
+  echo "✅ 找到 init-scripts 目录: $INIT_SCRIPTS_DIR"
+  echo "   将自动执行以下 SQL 文件:"
+  ls -1 "$INIT_SCRIPTS_DIR"/*.sql 2>/dev/null | sed 's/^/     - /' || echo "     (未找到 SQL 文件)"
+fi
+
 # 生成带节点名的 PV 配置
 cat > /tmp/mysql-pv-generated.yaml <<EOF
 apiVersion: v1
@@ -43,7 +54,9 @@ spec:
 EOF
 
 echo "正在部署 MySQL..."
+cd "$(dirname "${BASH_SOURCE[0]}")"
 kubectl apply -f mysql-secret.yaml
+kubectl apply -f mysql-configmap.yaml
 kubectl apply -f /tmp/mysql-pv-generated.yaml
 kubectl apply -f mysql-pvc.yaml
 kubectl apply -f mysql-deployment.yaml
@@ -67,4 +80,11 @@ echo "  Service: mysql.default.svc.cluster.local:3306"
 echo "  数据库: bantu_crm"
 echo "  Root 用户: root / bantu_root_password_2024"
 echo "  应用用户: bantu_user / bantu_user_password_2024"
+echo ""
+echo "初始化脚本:"
+echo "  MySQL 容器会自动执行 /home/bantu/crm-backend-python/init-scripts/ 目录下的 SQL 文件"
+echo "  执行顺序: 01_schema_unified.sql -> 02_seed_data.sql -> 03_vendors_seed_data.sql"
+echo ""
+echo "查看初始化日志:"
+echo "  kubectl logs -l app=mysql | grep -i 'init'"
 
