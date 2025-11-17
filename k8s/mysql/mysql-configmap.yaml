@@ -7,7 +7,8 @@ metadata:
     app: mysql
 data:
   # 数据库连接信息（非敏感信息）
-  DB_HOST: "mysql.default.svc.cluster.local"
+  # 注意：在 Kubernetes 集群内，使用 Service 名称即可，会自动解析
+  DB_HOST: "mysql"
   DB_PORT: "3306"
   DB_NAME: "bantu_crm"
   DB_USER: "bantu_user"
@@ -23,8 +24,9 @@ data:
   DB_POOL_TIMEOUT: "30"
   
   # 连接字符串（不含密码，密码从 Secret 获取）
-  DB_CONNECTION_STRING: "mysql://mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4"
-  DB_JDBC_URL: "jdbc:mysql://mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4&useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  # 使用 Service 名称，Kubernetes 会自动解析为完整域名
+  DB_CONNECTION_STRING: "mysql://mysql:3306/bantu_crm?charset=utf8mb4"
+  DB_JDBC_URL: "jdbc:mysql://mysql:3306/bantu_crm?charset=utf8mb4&useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
   
   # Activiti 配置
   ACTIVITI_DB_HOST: "mysql"
