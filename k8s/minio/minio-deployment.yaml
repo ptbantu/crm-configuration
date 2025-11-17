@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minio
+  namespace: default
+  labels:
+    app: minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: minio
+  template:
+    metadata:
+      labels:
+        app: minio
+    spec:
+      containers:
+      - name: minio
+        image: minio/minio:latest
+        ports:
+        - containerPort: 9000
+          name: api
+        - containerPort: 9001
+          name: console
+        command:
+        - /bin/sh
+        - -c
+        - |
+          minio server /data \
+            --console-address ":9001" \
+            --address ":9000"
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: minio-secret
+              key: MINIO_ROOT_PASSWORD
+        - name: MINIO_BROWSER_REDIRECT_URL
+          valueFrom:
+            configMapKeyRef:
+              name: minio-config
+              key: MINIO_BROWSER_REDIRECT_URL
+        - name: MINIO_SERVER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: minio-config
+              key: MINIO_SERVER_URL
+        - name: MINIO_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: minio-config
+              key: MINIO_REGION
+        - name: MINIO_BROWSER
+          valueFrom:
+            configMapKeyRef:
+              name: minio-config
+              key: MINIO_BROWSER
+        volumeMounts:
+        - name: minio-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: 9000
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: 9000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: minio-pvc
+
