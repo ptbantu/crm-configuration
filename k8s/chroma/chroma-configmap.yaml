@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chroma-config
+  namespace: default
+data:
+  # Chroma 服务器配置
+  CHROMA_HOST: "0.0.0.0"
+  CHROMA_PORT: "8000"
+  CHROMA_SERVER_AUTHN_PROVIDER: "chromadb.auth.token_authn.TokenAuthenticationServerProvider"
+  CHROMA_SERVER_AUTHN_CREDENTIALS: ""
+  CHROMA_SERVER_AUTHN_CREDENTIALS_PROVIDER: ""
+  CHROMA_SERVER_AUTHZ_PROVIDER: "chromadb.auth.simple_rbac_authz.SimpleRBACAuthorizationProvider"
+  CHROMA_SERVER_AUTHZ_CONFIG_FILE: ""
+  CHROMA_SERVER_AUTHZ_CONFIG_PROVIDER: ""
+  
+  # 数据存储配置
+  IS_PERSISTENT: "true"
+  PERSIST_DIRECTORY: "/chroma/chroma"
+  
+  # 其他配置
+  ANONYMIZED_TELEMETRY: "false"
+  ALLOW_RESET: "true"
+

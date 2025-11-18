@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: activiti-cloud-config
+  namespace: default
+data:
+  # 数据库配置
+  SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
+  
+  # Activiti 配置
+  ACTIVITI_DATABASE_SCHEMA_UPDATE: "true"
+  ACTIVITI_ASYNC_EXECUTOR_ACTIVATE: "true"
+  ACTIVITI_HISTORY_LEVEL: "full"
+  
+  # 应用配置
+  SERVER_PORT: "8080"
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  
+  # 日志配置
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_ORG_ACTIVITI: "DEBUG"
+

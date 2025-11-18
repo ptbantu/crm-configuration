@@ -63,11 +63,48 @@ spec:
               name: mongodb-config
               key: MONGO_DATABASE
         command:
-        - mongod
-        - --bind_ip_all
-        - --auth
-        args:
-        - --wiredTigerCacheSizeGB=1
+        - /bin/bash
+        - -c
+        - |
+          # 检查数据目录是否为空
+          if [ -z "$(ls -A /data/db)" ]; then
+            # 数据目录为空，使用环境变量初始化
+            echo "数据目录为空，使用环境变量初始化 MongoDB..."
+            mongod --bind_ip_all --wiredTigerCacheSizeGB=1 &
+            MONGO_PID=$!
+            
+            # 等待 MongoDB 启动
+            until mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+              echo "等待 MongoDB 启动..."
+              sleep 2
+            done
+            
+            # 创建 root 用户
+            mongosh admin --eval "
+              db.createUser({
+                user: '$MONGO_INITDB_ROOT_USERNAME',
+                pwd: '$MONGO_INITDB_ROOT_PASSWORD',
+                roles: [{ role: 'root', db: 'admin' }]
+              })
+            " --quiet
+            
+            # 创建应用数据库和用户
+            mongosh admin -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "
+              use $MONGO_INITDB_DATABASE
+              db.createUser({
+                user: '$MONGO_INITDB_USERNAME',
+                pwd: '$MONGO_INITDB_PASSWORD',
+                roles: [{ role: 'readWrite', db: '$MONGO_INITDB_DATABASE' }]
+              })
+            " --quiet
+            
+            # 停止 MongoDB
+            kill $MONGO_PID
+            wait $MONGO_PID
+          fi
+          
+          # 启动 MongoDB（启用认证）
+          exec mongod --bind_ip_all --auth --wiredTigerCacheSizeGB=1
         volumeMounts:
         - name: mongodb-data
           mountPath: /data/db

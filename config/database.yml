@@ -1,0 +1,899 @@
+# ============================================================
+# BANTU CRM 数据库连接配置
+# ============================================================
+# 包含 MySQL、Redis 和 Activiti 的连接配置
+#
+# 快速连接参考：
+# - MySQL: mysql.default.svc.cluster.local:3306
+#   - Root: root / bantu_root_password_2024
+#   - App: bantu_user / bantu_user_password_2024
+# - Redis: redis.default.svc.cluster.local:6379
+#   - Password: bantu_redis_password_2024
+#   - URL: redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0
+# - MinIO: minio.default.svc.cluster.local:9000
+#   - Access Key: bantu_minio_admin
+#   - Secret Key: bantu_minio_password_2024
+#   - Console: minio-console.default.svc.cluster.local:9001
+# - MongoDB: mongodb.default.svc.cluster.local:27017
+#   - Root: bantu_mongo_admin / bantu_mongo_password_2024
+#   - App: bantu_mongo_user / bantu_mongo_user_password_2024
+#   - Database: bantu_crm
+# - Activiti Cloud: activiti-cloud.default.svc.cluster.local:8080
+#   - Image: activiti/activiti-cloud:7.1.0
+#   - Database: 复用 MySQL (bantu_crm)
+# - Metabase: metabase.default.svc.cluster.local:3000
+#   - Image: metabase/metabase:latest
+#   - Database: 复用 MySQL (bantu_crm)
+# - Chroma: chroma.default.svc.cluster.local:8000
+#   - Image: chromadb/chroma:latest
+#   - 向量数据库，用于 AI/ML 应用
+# ============================================================
+
+# MySQL 数据库连接配置
+# 用于 BANTU CRM 系统
+
+mysql:
+  # 集群内连接（Kubernetes Service）
+  host: mysql.default.svc.cluster.local
+  port: 3306
+  
+  # 数据库名称
+  database: bantu_crm
+  
+  # Root 用户（管理员权限）
+  root:
+    username: root
+    password: bantu_root_password_2024
+  
+  # 应用用户（建议应用使用此用户）
+  app:
+    username: bantu_user
+    password: bantu_user_password_2024
+  
+  # 连接池配置
+  pool:
+    max_connections: 20
+    min_connections: 5
+    timeout: 30
+  
+  # 字符集
+  charset: utf8mb4
+  collation: utf8mb4_unicode_ci
+
+# 连接字符串示例（不同格式）
+connection_strings:
+  # MySQL - Root 用户
+  mysql_root_uri: "mysql://root:bantu_root_password_2024@mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4"
+  mysql_root_jdbc: "jdbc:mysql://mysql.default.svc.cluster.local:3306/bantu_crm?user=root&password=bantu_root_password_2024&charset=utf8mb4"
+  
+  # MySQL - 应用用户
+  mysql_app_uri: "mysql://bantu_user:bantu_user_password_2024@mysql.default.svc.cluster.local:3306/bantu_crm?charset=utf8mb4"
+  mysql_app_jdbc: "jdbc:mysql://mysql.default.svc.cluster.local:3306/bantu_crm?user=bantu_user&password=bantu_user_password_2024&charset=utf8mb4"
+  
+  # Redis - 完整 URI（带密码）
+  redis_uri: "redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0"
+  # Redis - 集群内短地址（带密码）
+  redis_short: "redis://:bantu_redis_password_2024@redis:6379/0"
+  # Redis - 无密码 URI（需要单独 AUTH）
+  redis_no_pass: "redis://redis.default.svc.cluster.local:6379/0"
+  
+  # MinIO - S3 端点
+  minio_endpoint: "http://minio.default.svc.cluster.local:9000"
+  minio_endpoint_short: "http://minio:9000"
+  minio_console: "http://minio-console.default.svc.cluster.local:9001"
+  
+  # MongoDB - 连接字符串
+  # 注意：应用用户创建在 bantu_crm 数据库中，authSource 应为 bantu_crm
+  mongodb_uri: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm"
+  mongodb_uri_short: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb:27017/bantu_crm?authSource=bantu_crm"
+  mongodb_root_uri: "mongodb://bantu_mongo_admin:bantu_mongo_password_2024@mongodb.default.svc.cluster.local:27017/admin?authSource=admin"
+  
+  # Activiti Cloud - 应用访问地址
+  activiti_cloud_url: "http://activiti-cloud.default.svc.cluster.local:8080"
+  activiti_cloud_url_short: "http://activiti-cloud:8080"
+  
+  # Metabase - Web 访问地址
+  metabase_url: "http://metabase.default.svc.cluster.local:3000"
+  metabase_url_short: "http://metabase:3000"
+  
+  # Chroma - 向量数据库 API 地址
+  chroma_url: "http://chroma.default.svc.cluster.local:8000"
+  chroma_url_short: "http://chroma:8000"
+
+# 环境变量映射（用于应用配置）
+env:
+  # MySQL 环境变量
+  DB_HOST: "mysql.default.svc.cluster.local"
+  DB_PORT: "3306"
+  DB_NAME: "bantu_crm"
+  DB_USER: "bantu_user"
+  DB_PASSWORD: "bantu_user_password_2024"
+  DB_ROOT_USER: "root"
+  DB_ROOT_PASSWORD: "bantu_root_password_2024"
+  
+  # Redis 环境变量
+  REDIS_HOST: "redis.default.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: "bantu_redis_password_2024"
+  REDIS_DB: "0"
+  REDIS_TIMEOUT: "30"
+  REDIS_MAX_CONNECTIONS: "20"
+  REDIS_KEY_PREFIX: "bantu_crm:"
+  
+  # Redis 连接字符串（直接使用）
+  REDIS_URL: "redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0"
+  
+  # MinIO 环境变量
+  MINIO_ENDPOINT: "minio.default.svc.cluster.local"
+  MINIO_PORT: "9000"
+  MINIO_ACCESS_KEY: "bantu_minio_admin"
+  MINIO_SECRET_KEY: "bantu_minio_password_2024"
+  MINIO_BUCKET: "bantu-crm"
+  MINIO_URL: "http://minio.default.svc.cluster.local:9000"
+  
+  # MongoDB 环境变量
+  MONGO_HOST: "mongodb.default.svc.cluster.local"
+  MONGO_PORT: "27017"
+  MONGO_DATABASE: "bantu_crm"
+  MONGO_USERNAME: "bantu_mongo_user"
+  MONGO_PASSWORD: "bantu_mongo_user_password_2024"
+  MONGO_ROOT_USERNAME: "bantu_mongo_admin"
+  MONGO_ROOT_PASSWORD: "bantu_mongo_password_2024"
+  MONGO_AUTH_SOURCE: "admin"
+  MONGO_URL: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=admin"
+
+# ============================================================
+# Activiti Workflow Engine 数据库配置
+# ============================================================
+# Activiti 工作流引擎使用共享的 MySQL 数据库
+# 部署在 Kubernetes 集群中
+
+activiti:
+  # 数据库连接信息（Kubernetes Service）
+  host: mysql
+  port: 3306
+  database: bantu_crm
+  
+  # 认证信息（使用应用用户）
+  username: bantu_user
+  password: bantu_user_password_2024
+  
+  # JDBC 连接字符串（用于 Spring Boot）
+  jdbc_url: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  
+  # 驱动类名
+  driver_class: "com.mysql.cj.jdbc.Driver"
+  
+  # 连接池配置（HikariCP）
+  pool:
+    maximum_pool_size: 10
+    minimum_idle: 5
+    connection_timeout: 30000
+    idle_timeout: 600000
+    max_lifetime: 1800000
+  
+  # Activiti 特定配置
+  activiti:
+    # 数据库 Schema 自动更新
+    database_schema_update: true
+    # 启用异步执行器
+    async_executor_activate: true
+    # 历史记录级别（full: 完整历史）
+    history_level: full
+    # 检查流程定义
+    check_process_definitions: true
+  
+  # 服务信息
+  service:
+    name: activiti
+    port: 8080
+    context_path: /activiti
+    # 集群内访问地址
+    internal_url: "http://activiti:8080/activiti"
+  
+  # 注意事项
+  notes: |
+    - Activiti 表使用 ACT_ 前缀，创建在 bantu_crm 数据库中
+    - Schema 在启动时自动更新
+    - 使用与 CRM 应用相同的 MySQL 实例
+    - Service 名称 'mysql' 在 Kubernetes 集群内解析为 MySQL Service
+    - 表结构由 Activiti 自动管理，无需手动创建
+
+# ============================================================
+# Redis 缓存配置
+# ============================================================
+# Redis 用于缓存、会话存储、消息队列等
+# 部署在 Kubernetes 集群中
+
+redis:
+  # 集群内连接（Kubernetes Service）
+  # 完整地址：redis.default.svc.cluster.local:6379
+  # 短地址：redis:6379（同一 namespace 内）
+  host: redis.default.svc.cluster.local
+  port: 6379
+  
+  # 认证信息
+  password: bantu_redis_password_2024
+  
+  # 数据库索引（0-15，默认使用 0）
+  database: 0
+  
+  # 快速连接字符串（最常用）
+  url: "redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0"
+  # 集群内短地址（同一 namespace）
+  short_url: "redis://:bantu_redis_password_2024@redis:6379/0"
+  
+  # 连接配置
+  connection:
+    # 连接超时（秒）
+    timeout: 30
+    # 连接池最大连接数
+    max_connections: 20
+    # 连接池最小空闲连接数
+    min_idle: 5
+    # 连接池最大空闲连接数
+    max_idle: 10
+    # 连接最大空闲时间（毫秒）
+    max_idle_time: 300000
+    # 连接最大生存时间（毫秒）
+    max_lifetime: 1800000
+  
+  # 重试配置
+  retry:
+    # 最大重试次数
+    max_attempts: 3
+    # 重试间隔（毫秒）
+    retry_interval: 1000
+  
+  # 序列化配置
+  serialization:
+    # 键序列化方式: string, json, msgpack
+    key_serializer: string
+    # 值序列化方式: string, json, msgpack, pickle
+    value_serializer: json
+  
+  # 缓存配置
+  cache:
+    # 默认过期时间（秒，0 表示不过期）
+    default_timeout: 3600
+    # 键前缀
+    key_prefix: "bantu_crm:"
+    # 是否启用压缩
+    enable_compression: false
+  
+  # 连接字符串（已移至顶层 connection_strings，这里保留作为备用）
+  connection_strings:
+    # 完整 URI（带密码）
+    full_uri: "redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0"
+    # 短地址（同一 namespace）
+    short_uri: "redis://:bantu_redis_password_2024@redis:6379/0"
+    # 无密码 URI（需要单独 AUTH）
+    no_pass_uri: "redis://redis.default.svc.cluster.local:6379/0"
+  
+  # 使用场景配置
+  use_cases:
+    # 会话存储
+    session:
+      database: 1
+      timeout: 1800  # 30 分钟
+      key_prefix: "session:"
+    
+    # 缓存
+    cache:
+      database: 0
+      timeout: 3600  # 1 小时
+      key_prefix: "cache:"
+    
+    # 消息队列
+    queue:
+      database: 2
+      key_prefix: "queue:"
+    
+    # 分布式锁
+    lock:
+      database: 3
+      timeout: 30
+      key_prefix: "lock:"
+    
+    # 限流
+    rate_limit:
+      database: 4
+      key_prefix: "ratelimit:"
+  
+  # 服务信息
+  service:
+    name: redis
+    port: 6379
+    namespace: default
+    # 集群内访问地址（短地址，同一 namespace）
+    internal_url: "redis://redis:6379"
+    # 完整访问地址（跨 namespace）
+    full_url: "redis://:bantu_redis_password_2024@redis.default.svc.cluster.local:6379/0"
+    # 带密码的短地址（推荐使用）
+    url_with_auth: "redis://:bantu_redis_password_2024@redis:6379/0"
+  
+  # 持久化配置
+  persistence:
+    # 是否启用 RDB 持久化
+    rdb_enabled: true
+    # RDB 保存策略
+    rdb_save: "900 1 300 10 60 10000"
+    # 是否启用 AOF 持久化
+    aof_enabled: true
+    # AOF 同步策略: always, everysec, no
+    aof_sync: "everysec"
+  
+  # 内存配置
+  memory:
+    # 最大内存（2GB）
+    max_memory: "2gb"
+    # 内存淘汰策略: noeviction, allkeys-lru, volatile-lru, allkeys-random, volatile-random, volatile-ttl
+    eviction_policy: "allkeys-lru"
+  
+  # 注意事项
+  notes: |
+    - Redis 部署在 Kubernetes 集群中，使用 Service 名称 'redis' 访问
+    - 集群内访问地址: redis.default.svc.cluster.local:6379 或 redis:6379
+    - 密码认证已启用，所有连接都需要提供密码
+    - 数据持久化到 PVC，删除 PVC 会丢失数据
+    - 建议使用不同的 database 索引区分不同的使用场景
+    - 生产环境请使用更安全的密码管理方式
+
+# ============================================================
+# MinIO 对象存储配置
+# ============================================================
+# MinIO 用于对象存储（OSS），S3 兼容 API
+# 部署在 Kubernetes 集群中
+
+minio:
+  # 集群内连接（Kubernetes Service）
+  # API 地址：minio.default.svc.cluster.local:9000
+  # Console 地址：minio-console.default.svc.cluster.local:9001
+  endpoint: minio.default.svc.cluster.local
+  port: 9000
+  console_port: 9001
+  
+  # 认证信息
+  access_key: bantu_minio_admin
+  secret_key: bantu_minio_password_2024
+  
+  # 区域配置
+  region: us-east-1
+  
+  # 快速连接字符串
+  api_url: "http://minio.default.svc.cluster.local:9000"
+  console_url: "http://minio-console.default.svc.cluster.local:9001"
+  # 集群内短地址（同一 namespace）
+  short_api_url: "http://minio:9000"
+  short_console_url: "http://minio-console:9001"
+  
+  # S3 兼容配置
+  s3:
+    # 是否使用 SSL
+    use_ssl: false
+    # 默认存储桶
+    default_bucket: bantu-crm
+    # 路径风格访问（vs 虚拟主机风格）
+    path_style: true
+  
+  # 连接配置
+  connection:
+    # 连接超时（秒）
+    timeout: 30
+    # 最大连接数
+    max_connections: 10
+    # 重试配置
+    retry:
+      max_attempts: 3
+      retry_interval: 1000
+  
+  # 存储桶配置
+  buckets:
+    # 默认存储桶
+    default: bantu-crm
+    # 其他存储桶
+    uploads: bantu-uploads
+    documents: bantu-documents
+    images: bantu-images
+    backups: bantu-backups
+  
+  # 连接字符串示例（不同格式）
+  connection_strings:
+    # S3 端点 URL
+    s3_endpoint: "http://minio.default.svc.cluster.local:9000"
+    # 短地址端点
+    s3_endpoint_short: "http://minio:9000"
+    # 完整 S3 URL（带存储桶）
+    s3_url: "http://minio.default.svc.cluster.local:9000/bantu-crm"
+    # MinIO Client 配置命令
+    mc_alias: "mc alias set myminio http://minio:9000 bantu_minio_admin bantu_minio_password_2024"
+  
+  # 环境变量映射（用于应用配置）
+  env:
+    MINIO_ENDPOINT: "minio.default.svc.cluster.local"
+    MINIO_PORT: "9000"
+    MINIO_CONSOLE_PORT: "9001"
+    MINIO_ACCESS_KEY: "bantu_minio_admin"
+    MINIO_SECRET_KEY: "bantu_minio_password_2024"
+    MINIO_REGION: "us-east-1"
+    MINIO_USE_SSL: "false"
+    MINIO_BUCKET: "bantu-crm"
+    MINIO_URL: "http://minio.default.svc.cluster.local:9000"
+  
+  # 服务信息
+  service:
+    name: minio
+    console_name: minio-console
+    port: 9000
+    console_port: 9001
+    namespace: default
+    # 集群内访问地址
+    internal_api_url: "http://minio:9000"
+    internal_console_url: "http://minio-console:9001"
+    # 完整访问地址
+    full_api_url: "http://minio.default.svc.cluster.local:9000"
+    full_console_url: "http://minio-console.default.svc.cluster.local:9001"
+  
+  # 持久化配置
+  persistence:
+    # 存储大小
+    storage_size: "50Gi"
+    # 存储路径（本地）
+    local_path: "/home/bantu/bantu-data/minio"
+    # 存储类
+    storage_class: "local-storage"
+  
+  # 注意事项
+  notes: |
+    - MinIO 部署在 Kubernetes 集群中，使用 Service 名称 'minio' 访问 API
+    - Console 服务使用 'minio-console' 访问管理界面
+    - 集群内访问地址: minio.default.svc.cluster.local:9000 或 minio:9000
+    - 使用 Access Key 和 Secret Key 进行认证
+    - 数据持久化到 PVC，删除 PVC 会丢失数据
+    - 支持 S3 兼容 API，可直接使用 AWS SDK
+    - 生产环境请使用更安全的密钥管理方式
+    - 建议配置 HTTPS 和 TLS 证书
+
+# ============================================================
+# MongoDB 数据库配置
+# ============================================================
+# MongoDB 用于文档存储、日志、分析等
+# 部署在 Kubernetes 集群中
+
+mongodb:
+  # 集群内连接（Kubernetes Service）
+  # 完整地址：mongodb.default.svc.cluster.local:27017
+  # 短地址：mongodb:27017（同一 namespace 内）
+  host: mongodb.default.svc.cluster.local
+  port: 27017
+  
+  # 数据库名称
+  database: bantu_crm
+  
+  # Root 用户（管理员权限）
+  root:
+    username: bantu_mongo_admin
+    password: bantu_mongo_password_2024
+    auth_database: admin
+  
+  # 应用用户（建议应用使用此用户）
+  app:
+    username: bantu_mongo_user
+    password: bantu_mongo_user_password_2024
+    auth_database: admin
+  
+  # 快速连接字符串（最常用）
+  # 注意：应用用户创建在 bantu_crm 数据库中，authSource 应为 bantu_crm
+  url: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm"
+  # 集群内短地址（同一 namespace）
+  short_url: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb:27017/bantu_crm?authSource=bantu_crm"
+  # Root 用户连接字符串（authSource 为 admin）
+  root_url: "mongodb://bantu_mongo_admin:bantu_mongo_password_2024@mongodb.default.svc.cluster.local:27017/admin?authSource=admin"
+  
+  # 连接配置
+  connection:
+    # 连接超时（秒）
+    timeout: 30
+    # 连接池最大连接数
+    max_pool_size: 20
+    # 连接池最小连接数
+    min_pool_size: 5
+    # 最大空闲时间（毫秒）
+    max_idle_time_ms: 300000
+    # 服务器选择超时（毫秒）
+    server_selection_timeout_ms: 5000
+    # Socket 超时（毫秒）
+    socket_timeout_ms: 30000
+  
+  # 认证配置
+  auth:
+    # 认证数据库（应用用户使用 bantu_crm，root 用户使用 admin）
+    auth_source: bantu_crm  # 应用用户
+    auth_source_admin: admin  # Root 用户
+    # 认证机制
+    auth_mechanism: SCRAM-SHA-256
+  
+  # 连接字符串示例（不同格式）
+  connection_strings:
+    # 应用用户 URI（推荐）- authSource 为 bantu_crm
+    app_uri: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm"
+    # 应用用户 URI（短地址）
+    app_uri_short: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb:27017/bantu_crm?authSource=bantu_crm"
+    # Root 用户 URI（authSource 为 admin）
+    root_uri: "mongodb://bantu_mongo_admin:bantu_mongo_password_2024@mongodb.default.svc.cluster.local:27017/admin?authSource=admin"
+    # Root 用户 URI（短地址）
+    root_uri_short: "mongodb://bantu_mongo_admin:bantu_mongo_password_2024@mongodb:27017/admin?authSource=admin"
+    # 带选项的连接字符串
+    uri_with_options: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm&maxPoolSize=20&minPoolSize=5"
+  
+  # 环境变量映射（用于应用配置）
+  env:
+    MONGO_HOST: "mongodb.default.svc.cluster.local"
+    MONGO_PORT: "27017"
+    MONGO_DATABASE: "bantu_crm"
+    MONGO_USERNAME: "bantu_mongo_user"
+    MONGO_PASSWORD: "bantu_mongo_user_password_2024"
+    MONGO_ROOT_USERNAME: "bantu_mongo_admin"
+    MONGO_ROOT_PASSWORD: "bantu_mongo_password_2024"
+  MONGO_AUTH_SOURCE: "admin"
+  MONGO_URL: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm"
+  
+  # Activiti Cloud 环境变量
+  ACTIVITI_CLOUD_HOST: "activiti-cloud.default.svc.cluster.local"
+  ACTIVITI_CLOUD_PORT: "8080"
+  ACTIVITI_CLOUD_URL: "http://activiti-cloud.default.svc.cluster.local:8080"
+  
+  # Metabase 环境变量
+  METABASE_HOST: "metabase.default.svc.cluster.local"
+  METABASE_PORT: "3000"
+  METABASE_URL: "http://metabase.default.svc.cluster.local:3000"
+  
+  # Chroma 向量数据库环境变量
+  CHROMA_HOST: "chroma.default.svc.cluster.local"
+  CHROMA_PORT: "8000"
+  CHROMA_URL: "http://chroma.default.svc.cluster.local:8000"
+  
+  # 使用场景配置
+  use_cases:
+    # 文档存储
+    documents:
+      database: bantu_crm
+      collection_prefix: "doc_"
+    
+    # 日志存储
+    logs:
+      database: bantu_crm
+      collection_prefix: "log_"
+    
+    # 分析数据
+    analytics:
+      database: bantu_crm
+      collection_prefix: "analytics_"
+    
+    # 缓存数据
+    cache:
+      database: bantu_crm
+      collection_prefix: "cache_"
+  
+  # 服务信息
+  service:
+    name: mongodb
+    port: 27017
+    namespace: default
+    # 集群内访问地址（短地址，同一 namespace）
+    internal_url: "mongodb://mongodb:27017"
+    # 完整访问地址（跨 namespace）- authSource 为 bantu_crm
+    full_url: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb.default.svc.cluster.local:27017/bantu_crm?authSource=bantu_crm"
+    # 带认证的短地址（推荐使用）
+    url_with_auth: "mongodb://bantu_mongo_user:bantu_mongo_user_password_2024@mongodb:27017/bantu_crm?authSource=bantu_crm"
+  
+  # 持久化配置
+  persistence:
+    # 存储大小
+    storage_size: "30Gi"
+    # 存储路径（本地）
+    local_path: "/home/bantu/bantu-data/mongodb"
+    # 存储类
+    storage_class: "local-storage"
+  
+  # 性能配置
+  performance:
+    # WiredTiger 缓存大小（GB）
+    wired_tiger_cache_size_gb: 1
+    # 日志级别
+    log_level: 0
+    # 操作日志大小（MB）
+    oplog_size_mb: 1024
+  
+  # 注意事项
+  notes: |
+    - MongoDB 部署在 Kubernetes 集群中，使用 Service 名称 'mongodb' 访问
+    - 集群内访问地址: mongodb.default.svc.cluster.local:27017 或 mongodb:27017
+    - 使用用户名和密码进行认证
+    - Root 用户认证数据库为 admin
+    - 应用用户认证数据库为 bantu_crm（用户创建在 bantu_crm 数据库中）
+    - 数据持久化到 PVC，删除 PVC 会丢失数据
+    - 应用建议使用应用用户（bantu_mongo_user）而非 root 用户
+    - 生产环境请使用更安全的密码管理方式
+    - 建议配置副本集以提高可用性
+
+# ============================================================
+# Activiti Cloud 工作流引擎配置
+# ============================================================
+# Activiti Cloud 7.1.0 工作流引擎
+# 部署在 Kubernetes 集群中，复用现有的 MySQL 数据库
+
+activiti_cloud:
+  # 集群内连接（Kubernetes Service）
+  host: activiti-cloud.default.svc.cluster.local
+  port: 8080
+  
+  # 服务信息
+  service:
+    name: activiti-cloud
+    port: 8080
+    namespace: default
+    # 集群内访问地址（短地址，同一 namespace）
+    internal_url: "http://activiti-cloud:8080"
+    # 完整访问地址（跨 namespace）
+    full_url: "http://activiti-cloud.default.svc.cluster.local:8080"
+  
+  # 数据库配置（复用 MySQL）
+  database:
+    # 使用现有的 MySQL 数据库
+    host: mysql.default.svc.cluster.local
+    port: 3306
+    database: bantu_crm
+    username: bantu_user
+    password: bantu_user_password_2024
+    # JDBC 连接字符串
+    jdbc_url: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+  
+  # Activiti 配置
+  activiti:
+    # 数据库 Schema 自动更新
+    database_schema_update: true
+    # 启用异步执行器
+    async_executor_activate: true
+    # 历史记录级别（full: 完整历史）
+    history_level: full
+  
+  # 镜像信息
+  image:
+    repository: activiti/activiti-cloud
+    tag: "7.1.0"
+  
+  # 连接字符串
+  connection_strings:
+    # 应用访问地址
+    app_url: "http://activiti-cloud.default.svc.cluster.local:8080"
+    app_url_short: "http://activiti-cloud:8080"
+    # Actuator 健康检查
+    health_url: "http://activiti-cloud.default.svc.cluster.local:8080/actuator/health"
+  
+  # 环境变量映射
+  env:
+    ACTIVITI_CLOUD_HOST: "activiti-cloud.default.svc.cluster.local"
+    ACTIVITI_CLOUD_PORT: "8080"
+    ACTIVITI_CLOUD_URL: "http://activiti-cloud.default.svc.cluster.local:8080"
+    SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+    SPRING_DATASOURCE_USERNAME: "bantu_user"
+    SPRING_DATASOURCE_PASSWORD: "bantu_user_password_2024"
+  
+  # 注意事项
+  notes: |
+    - Activiti Cloud 部署在 Kubernetes 集群中，使用 Service 名称 'activiti-cloud' 访问
+    - 集群内访问地址: activiti-cloud.default.svc.cluster.local:8080 或 activiti-cloud:8080
+    - 复用现有的 MySQL 数据库 bantu_crm
+    - Activiti 表使用 ACT_ 前缀，自动创建在 bantu_crm 数据库中
+    - Schema 在启动时自动更新
+    - 使用应用用户（bantu_user）连接数据库
+
+# ============================================================
+# Metabase 数据分析平台配置
+# ============================================================
+# Metabase 用于数据分析和可视化
+# 部署在 Kubernetes 集群中，复用现有的 MySQL 数据库
+
+metabase:
+  # 集群内连接（Kubernetes Service）
+  host: metabase.default.svc.cluster.local
+  port: 3000
+  
+  # 服务信息
+  service:
+    name: metabase
+    port: 3000
+    namespace: default
+    # 集群内访问地址（短地址，同一 namespace）
+    internal_url: "http://metabase:3000"
+    # 完整访问地址（跨 namespace）
+    full_url: "http://metabase.default.svc.cluster.local:3000"
+  
+  # 数据库配置（复用 MySQL）
+  database:
+    # 使用现有的 MySQL 数据库
+    type: mysql
+    host: mysql.default.svc.cluster.local
+    port: 3306
+    database: bantu_crm
+    username: bantu_user
+    password: bantu_user_password_2024
+    # 连接字符串
+    connection_string: "mysql://bantu_user:bantu_user_password_2024@mysql:3306/bantu_crm"
+  
+  # 应用配置
+  app:
+    # 加密密钥（生产环境请更改）
+    encryption_secret_key: "bantu_metabase_secret_key_2024_change_in_production"
+    # 密码复杂度
+    password_complexity: "normal"
+    # 密码长度
+    password_length: 8
+  
+  # 持久化配置
+  persistence:
+    # 存储大小
+    storage_size: "10Gi"
+    # 存储路径（本地）
+    local_path: "/home/bantu/bantu-data/metabase"
+    # 存储类
+    storage_class: "local-storage"
+  
+  # 镜像信息
+  image:
+    repository: metabase/metabase
+    tag: "latest"
+  
+  # 连接字符串
+  connection_strings:
+    # Web 访问地址
+    web_url: "http://metabase.default.svc.cluster.local:3000"
+    web_url_short: "http://metabase:3000"
+    # API 健康检查
+    health_url: "http://metabase.default.svc.cluster.local:3000/api/health"
+  
+  # 环境变量映射
+  env:
+    METABASE_HOST: "metabase.default.svc.cluster.local"
+    METABASE_PORT: "3000"
+    METABASE_URL: "http://metabase.default.svc.cluster.local:3000"
+    MB_DB_TYPE: "mysql"
+    MB_DB_HOST: "mysql"
+    MB_DB_PORT: "3306"
+    MB_DB_DBNAME: "bantu_crm"
+    MB_DB_USER: "bantu_user"
+    MB_DB_PASS: "bantu_user_password_2024"
+  
+  # 注意事项
+  notes: |
+    - Metabase 部署在 Kubernetes 集群中，使用 Service 名称 'metabase' 访问
+    - 集群内访问地址: metabase.default.svc.cluster.local:3000 或 metabase:3000
+    - 复用现有的 MySQL 数据库 bantu_crm
+    - 首次访问需要设置管理员账户
+    - 数据持久化到 PVC，删除 PVC 会丢失配置和数据
+    - 生产环境请更改加密密钥（MB_ENCRYPTION_SECRET_KEY）
+    - 建议配置 HTTPS 和 TLS 证书
+
+# ============================================================
+# Chroma 向量数据库配置
+# ============================================================
+# Chroma 用于存储和查询向量嵌入，常用于 AI/ML 应用
+# 部署在 Kubernetes 集群中
+
+chroma:
+  # 集群内连接（Kubernetes Service）
+  host: chroma.default.svc.cluster.local
+  port: 8000
+  
+  # 服务信息
+  service:
+    name: chroma
+    port: 8000
+    namespace: default
+    # 集群内访问地址（短地址，同一 namespace）
+    internal_url: "http://chroma:8000"
+    # 完整访问地址（跨 namespace）
+    full_url: "http://chroma.default.svc.cluster.local:8000"
+  
+  # 应用配置
+  app:
+    # 是否持久化
+    is_persistent: true
+    # 持久化目录
+    persist_directory: "/chroma/chroma"
+    # 是否允许重置
+    allow_reset: true
+    # 是否匿名遥测
+    anonymized_telemetry: false
+  
+  # 持久化配置
+  persistence:
+    # 存储大小
+    storage_size: "20Gi"
+    # 存储路径（本地）
+    local_path: "/home/bantu/bantu-data/chroma"
+    # 存储类
+    storage_class: "local-storage"
+  
+  # 镜像信息
+  image:
+    repository: chromadb/chroma
+    tag: "latest"
+  
+  # 连接字符串
+  connection_strings:
+    # API 访问地址
+    api_url: "http://chroma.default.svc.cluster.local:8000"
+    api_url_short: "http://chroma:8000"
+    # API 版本端点
+    version_url: "http://chroma.default.svc.cluster.local:8000/api/v1/version"
+  
+  # Python 客户端连接示例
+  python_client:
+    # HttpClient 方式（推荐）
+    http_client: |
+      from chromadb import HttpClient
+      client = HttpClient(host='chroma', port=8000)
+    # 完整 URL 方式
+    http_client_full: |
+      from chromadb import HttpClient
+      client = HttpClient(host='chroma.default.svc.cluster.local', port=8000)
+    # 使用示例
+    usage_example: |
+      from chromadb import HttpClient
+      client = HttpClient(host='chroma', port=8000)
+      collection = client.create_collection(name="my_collection")
+      collection.add(
+        embeddings=[[1.1, 2.3, 3.2], [4.5, 6.9, 4.4]],
+        documents=["doc1", "doc2"],
+        ids=["id1", "id2"]
+      )
+      results = collection.query(
+        query_embeddings=[[1.1, 2.3, 3.2]],
+        n_results=1
+      )
+  
+  # 环境变量映射
+  env:
+    CHROMA_HOST: "chroma.default.svc.cluster.local"
+    CHROMA_PORT: "8000"
+    CHROMA_URL: "http://chroma.default.svc.cluster.local:8000"
+    IS_PERSISTENT: "true"
+    PERSIST_DIRECTORY: "/chroma/chroma"
+    ALLOW_RESET: "true"
+    ANONYMIZED_TELEMETRY: "false"
+  
+  # 使用场景配置
+  use_cases:
+    # 向量搜索
+    vector_search:
+      description: "存储和搜索文档嵌入向量"
+      collection_prefix: "doc_"
+    
+    # 语义搜索
+    semantic_search:
+      description: "基于语义相似度的搜索"
+      collection_prefix: "semantic_"
+    
+    # AI 应用
+    ai_applications:
+      description: "AI/ML 应用的向量存储"
+      collection_prefix: "ai_"
+    
+    # RAG (Retrieval-Augmented Generation)
+    rag:
+      description: "检索增强生成应用的向量存储"
+      collection_prefix: "rag_"
+  
+  # 注意事项
+  notes: |
+    - Chroma 部署在 Kubernetes 集群中，使用 Service 名称 'chroma' 访问
+    - 集群内访问地址: chroma.default.svc.cluster.local:8000 或 chroma:8000
+    - 使用 HTTP API 进行交互，支持 RESTful 接口
+    - 数据持久化到 PVC，删除 PVC 会丢失数据
+    - 支持 Python、JavaScript 等客户端 SDK
+    - 默认不启用认证，生产环境建议配置认证
+    - 适用于中小规模的向量存储需求
+    - 支持多种嵌入模型和距离度量方式
+    - 健康检查使用 TCP Socket 检查端口连通性
