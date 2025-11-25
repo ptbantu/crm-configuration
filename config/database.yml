@@ -480,7 +480,7 @@ mongodb:
   app:
     username: bantu_mongo_user
     password: bantu_mongo_user_password_2024
-    auth_database: admin
+    auth_database: bantu_crm  # 应用用户认证数据库（与 auth_source 一致）
   
   # 快速连接字符串（最常用）
   # 注意：应用用户创建在 bantu_crm 数据库中，authSource 应为 bantu_crm
