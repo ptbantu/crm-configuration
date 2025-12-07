@@ -1,0 +1,25 @@
+# ============================================================
+# SSL/TLS 证书配置
+# 为 www.bantuqifu.xin 域名自动申请 Let's Encrypt 证书
+# ============================================================
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: bantuqifu-xin-tls-cert
+  namespace: default
+spec:
+  # 证书的域名列表
+  dnsNames:
+  - www.bantuqifu.xin
+  # 注意：如果根域名 bantuqifu.xin 未正确解析，可以暂时移除
+  # 证书存储的 Secret 名称（必须与 Ingress 中的 secretName 一致）
+  secretName: bantuqifu-xin-tls-cert
+  # 证书颁发者（ClusterIssuer）
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  # 证书有效期（Let's Encrypt 证书有效期为 90 天，cert-manager 会自动续期）
+  duration: 2160h0m0s  # 90 天
+  renewBefore: 720h0m0s  # 在到期前 30 天续期
+

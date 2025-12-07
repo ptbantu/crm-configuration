@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  labels:
+    app: jenkins
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: www.bantuqifu.xin
+    http:
+      paths:
+      - path: /jenkins
+        pathType: Prefix
+        backend:
+          service:
+            name: jenkins
+            port:
+              number: 8080
+

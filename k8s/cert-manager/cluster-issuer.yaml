@@ -1,0 +1,48 @@
+# ============================================================
+# Let's Encrypt ClusterIssuer 配置
+# 用于自动为域名申请和续期 SSL/TLS 证书
+# ============================================================
+
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt 生产环境服务器
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # 邮箱地址（用于证书到期通知和账户恢复）
+    email: admin@bantuqifu.xin  # 请修改为您的邮箱地址
+    # 私钥算法
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    # HTTP-01 验证方式（推荐，适用于大多数场景）
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+          # 可选：指定 ingress 标签选择器
+          # podTemplate:
+          #   spec:
+          #     nodeSelector:
+          #       "kubernetes.io/os": linux
+
+---
+# Let's Encrypt 测试环境 ClusterIssuer（可选，用于测试）
+# 测试环境有更高的速率限制，适合开发测试
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    # Let's Encrypt 测试环境服务器
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@bantuqifu.xin  # 请修改为您的邮箱地址
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+
