@@ -1,0 +1,324 @@
+# ============================================================
+# CRM 微服务 Deployment 配置
+# 包含所有服务的 Deployment
+# ============================================================
+
+---
+# Foundation Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-foundation-service
+  labels:
+    app: crm-foundation-service
+    service: foundation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-foundation-service
+  template:
+    metadata:
+      labels:
+        app: crm-foundation-service
+        service: foundation
+    spec:
+      containers:
+      - name: foundation
+        image: bantu-crm-crm-foundation-service:latest
+        ports:
+        - containerPort: 8081
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: SERVER_PORT
+          value: "8081"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8081
+          initialDelaySeconds: 60
+          periodSeconds: 5
+
+---
+# Workflow Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-workflow-service
+  labels:
+    app: crm-workflow-service
+    service: workflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crm-workflow-service
+  template:
+    metadata:
+      labels:
+        app: crm-workflow-service
+        service: workflow
+    spec:
+      containers:
+      - name: workflow
+        image: bantu-crm-crm-workflow-service:latest
+        ports:
+        - containerPort: 8083
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: SERVER_PORT
+          value: "8083"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 5
+
+---
+# Business Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-business-service
+  labels:
+    app: crm-business-service
+    service: business
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-business-service
+  template:
+    metadata:
+      labels:
+        app: crm-business-service
+        service: business
+    spec:
+      containers:
+      - name: business
+        image: bantu-crm-crm-business-service:latest
+        ports:
+        - containerPort: 8082
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: SERVER_PORT
+          value: "8082"
+        - name: FOUNDATION_SERVICE_URL
+          value: "http://crm-foundation-service:8081"
+        - name: WORKFLOW_SERVICE_URL
+          value: "http://crm-workflow-service:8083"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 60
+          periodSeconds: 5
+
+---
+# Finance Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-finance-service
+  labels:
+    app: crm-finance-service
+    service: finance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crm-finance-service
+  template:
+    metadata:
+      labels:
+        app: crm-finance-service
+        service: finance
+    spec:
+      containers:
+      - name: finance
+        image: bantu-crm-crm-finance-service:latest
+        ports:
+        - containerPort: 8084
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:mysql://mysql:3306/bantu_crm?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true&allowPublicKeyRetrieval=true"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        - name: SERVER_PORT
+          value: "8084"
+        - name: BUSINESS_SERVICE_URL
+          value: "http://crm-business-service:8082"
+        - name: WORKFLOW_SERVICE_URL
+          value: "http://crm-workflow-service:8083"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 90
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 60
+          periodSeconds: 5
+
+---
+# Gateway Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-gateway
+  labels:
+    app: crm-gateway
+    service: gateway
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-gateway
+  template:
+    metadata:
+      labels:
+        app: crm-gateway
+        service: gateway
+    spec:
+      containers:
+      - name: gateway
+        image: bantu-crm-crm-gateway:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: SERVER_PORT
+          value: "8080"
+        - name: FOUNDATION_SERVICE_URL
+          value: "http://crm-foundation-service:8081"
+        - name: BUSINESS_SERVICE_URL
+          value: "http://crm-business-service:8082"
+        - name: WORKFLOW_SERVICE_URL
+          value: "http://crm-workflow-service:8083"
+        - name: FINANCE_SERVICE_URL
+          value: "http://crm-finance-service:8084"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+

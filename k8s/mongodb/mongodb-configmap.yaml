@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-config
+  namespace: default
+  labels:
+    app: mongodb
+data:
+  # MongoDB 配置
+  MONGO_HOST: "mongodb"
+  MONGO_PORT: "27017"
+  MONGO_DATABASE: "bantu_crm"
+  MONGO_AUTH_SOURCE: "admin"
+  
+  # 连接信息（用于应用配置）
+  MONGO_ENDPOINT: "mongodb.default.svc.cluster.local"
+  MONGO_USERNAME: "bantu_mongo_user"
+  MONGO_PASSWORD: "bantu_mongo_user_password_2024"
+  MONGO_ROOT_USERNAME: "bantu_mongo_admin"
+  MONGO_ROOT_PASSWORD: "bantu_mongo_password_2024"
+

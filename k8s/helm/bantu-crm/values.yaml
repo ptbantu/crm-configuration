@@ -1,0 +1,214 @@
+# BANTU CRM Helm Chart Values
+# 默认配置值
+
+# 全局配置
+global:
+  namespace: default
+  storageClass: local-storage
+  dataPath: /home/bantu/bantu-data
+
+# MySQL 配置
+mysql:
+  enabled: true
+  image:
+    repository: mysql
+    tag: "8.0"
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: local-storage
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+  secrets:
+    rootPassword: "bantu_root_password_2024"
+    database: "bantu_crm"
+    username: "bantu_user"
+    password: "bantu_user_password_2024"
+
+# Redis 配置
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7.2-alpine"
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-storage
+  password: "bantu_redis_password_2024"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# MinIO 配置
+minio:
+  enabled: true
+  image:
+    repository: minio/minio
+    tag: "RELEASE.2025-09-07T16-13-09Z"
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: local-storage
+  accessKey: "bantu_minio_admin"
+  secretKey: "bantu_minio_password_2024"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# MongoDB 配置
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "7.0"
+  persistence:
+    enabled: true
+    size: 30Gi
+    storageClass: local-storage
+  rootUsername: "bantu_mongo_admin"
+  rootPassword: "bantu_mongo_password_2024"
+  database: "bantu_crm"
+  appUsername: "bantu_mongo_user"
+  appPassword: "bantu_mongo_user_password_2024"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Chroma 向量数据库配置
+chroma:
+  enabled: true
+  image:
+    repository: chromadb/chroma
+    tag: "latest"
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: local-storage
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Metabase 配置
+metabase:
+  enabled: true
+  image:
+    repository: metabase/metabase
+    tag: "latest"
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-storage
+  encryptionSecretKey: "bantu_metabase_secret_key_2024_change_in_production"
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# Activiti Cloud 配置
+activitiCloud:
+  enabled: true
+  image:
+    repository: activiti/activiti-cloud
+    tag: "7.1.0"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+# CRM 微服务配置
+crmServices:
+  enabled: true
+  gateway:
+    enabled: true
+    replicas: 2
+    image:
+      repository: bantu-crm/crm-gateway
+      tag: "latest"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  foundation:
+    enabled: true
+    replicas: 2
+    image:
+      repository: bantu-crm/crm-foundation-service
+      tag: "latest"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  business:
+    enabled: true
+    replicas: 2
+    image:
+      repository: bantu-crm/crm-business-service
+      tag: "latest"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  workflow:
+    enabled: true
+    replicas: 1
+    image:
+      repository: bantu-crm/crm-workflow-service
+      tag: "latest"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+  finance:
+    enabled: true
+    replicas: 1
+    image:
+      repository: bantu-crm/crm-finance-service
+      tag: "latest"
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "250m"
+      limits:
+        memory: "1Gi"
+        cpu: "500m"
+

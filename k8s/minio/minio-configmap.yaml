@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-config
+  namespace: default
+  labels:
+    app: minio
+data:
+  # MinIO 配置
+  MINIO_BROWSER_REDIRECT_URL: "http://minio-console.default.svc.cluster.local:9001"
+  MINIO_SERVER_URL: "http://minio.default.svc.cluster.local:9000"
+  
+  # 环境变量配置
+  MINIO_HOST: "minio"
+  MINIO_PORT: "9000"
+  MINIO_CONSOLE_PORT: "9001"
+  MINIO_REGION: "us-east-1"
+  MINIO_BROWSER: "on"
+  
+  # 存储桶配置
+  MINIO_DEFAULT_BUCKET: "bantu-crm"
+  
+  # 连接信息（用于应用配置）
+  MINIO_ENDPOINT: "minio.default.svc.cluster.local"
+  MINIO_ACCESS_KEY: "bantu_minio_admin"
+  MINIO_SECRET_KEY: "bantu_minio_password_2024"
+  MINIO_USE_SSL: "false"
+

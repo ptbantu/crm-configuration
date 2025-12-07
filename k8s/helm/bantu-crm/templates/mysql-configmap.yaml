@@ -1,0 +1,18 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: mysql
+    chart: {{ include "bantu-crm.chart" . }}
+    release: {{ .Release.Name }}
+data:
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: {{ .Values.mysql.secrets.database | quote }}
+  DB_CHARSET: "utf8mb4"
+  DB_COLLATION: "utf8mb4_unicode_ci"
+{{- end }}
+

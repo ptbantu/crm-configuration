@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: default
+  labels:
+    app: mongodb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+      - name: mongodb
+        image: mongo:7.0
+        ports:
+        - containerPort: 27017
+          name: mongodb
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGO_INITDB_ROOT_USERNAME
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGO_INITDB_ROOT_PASSWORD
+        - name: MONGO_INITDB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGO_INITDB_DATABASE
+        - name: MONGO_INITDB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGO_INITDB_USERNAME
+        - name: MONGO_INITDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: MONGO_INITDB_PASSWORD
+        - name: MONGO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-config
+              key: MONGO_HOST
+        - name: MONGO_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-config
+              key: MONGO_PORT
+        - name: MONGO_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: mongodb-config
+              key: MONGO_DATABASE
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # 检查数据目录是否为空
+          if [ -z "$(ls -A /data/db)" ]; then
+            # 数据目录为空，使用环境变量初始化
+            echo "数据目录为空，使用环境变量初始化 MongoDB..."
+            mongod --bind_ip_all --wiredTigerCacheSizeGB=1 &
+            MONGO_PID=$!
+            
+            # 等待 MongoDB 启动
+            until mongosh --eval "db.adminCommand('ping')" --quiet 2>/dev/null; do
+              echo "等待 MongoDB 启动..."
+              sleep 2
+            done
+            
+            # 创建 root 用户
+            mongosh admin --eval "
+              db.createUser({
+                user: '$MONGO_INITDB_ROOT_USERNAME',
+                pwd: '$MONGO_INITDB_ROOT_PASSWORD',
+                roles: [{ role: 'root', db: 'admin' }]
+              })
+            " --quiet
+            
+            # 创建应用数据库和用户
+            mongosh admin -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "
+              use $MONGO_INITDB_DATABASE
+              db.createUser({
+                user: '$MONGO_INITDB_USERNAME',
+                pwd: '$MONGO_INITDB_PASSWORD',
+                roles: [{ role: 'readWrite', db: '$MONGO_INITDB_DATABASE' }]
+              })
+            " --quiet
+            
+            # 停止 MongoDB
+            kill $MONGO_PID
+            wait $MONGO_PID
+          fi
+          
+          # 启动 MongoDB（启用认证）
+          exec mongod --bind_ip_all --auth --wiredTigerCacheSizeGB=1
+        volumeMounts:
+        - name: mongodb-data
+          mountPath: /data/db
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mongosh --eval 'db.adminCommand(\"ping\")' -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --quiet"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "mongosh --eval 'db.adminCommand(\"ping\")' -u $MONGO_INITDB_ROOT_USERNAME -p $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --quiet"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: mongodb-data
+        persistentVolumeClaim:
+          claimName: mongodb-pvc
+

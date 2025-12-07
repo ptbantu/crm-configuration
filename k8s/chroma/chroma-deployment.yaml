@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chroma
+  namespace: default
+  labels:
+    app: chroma
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chroma
+  template:
+    metadata:
+      labels:
+        app: chroma
+    spec:
+      containers:
+      - name: chroma
+        image: chromadb/chroma:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        # 服务器配置
+        - name: IS_PERSISTENT
+          valueFrom:
+            configMapKeyRef:
+              name: chroma-config
+              key: IS_PERSISTENT
+        - name: PERSIST_DIRECTORY
+          valueFrom:
+            configMapKeyRef:
+              name: chroma-config
+              key: PERSIST_DIRECTORY
+        - name: ANONYMIZED_TELEMETRY
+          valueFrom:
+            configMapKeyRef:
+              name: chroma-config
+              key: ANONYMIZED_TELEMETRY
+        - name: ALLOW_RESET
+          valueFrom:
+            configMapKeyRef:
+              name: chroma-config
+              key: ALLOW_RESET
+        # 启动命令
+        command:
+        - "chroma"
+        args:
+        - "run"
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "8000"
+        - "--path"
+        - "/chroma/chroma"
+        volumeMounts:
+        - name: chroma-data
+          mountPath: /chroma
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          tcpSocket:
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 5
+      volumes:
+      - name: chroma-data
+        persistentVolumeClaim:
+          claimName: chroma-pvc
+

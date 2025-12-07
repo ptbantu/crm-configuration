@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activiti-cloud
+  namespace: default
+  labels:
+    app: activiti-cloud
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activiti-cloud
+  template:
+    metadata:
+      labels:
+        app: activiti-cloud
+    spec:
+      containers:
+      - name: activiti-cloud
+        image: activiti/activiti-cloud:7.1.0
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        # 数据库配置
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: SPRING_DATASOURCE_URL
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        # Activiti 配置
+        - name: ACTIVITI_DATABASE_SCHEMA_UPDATE
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: ACTIVITI_DATABASE_SCHEMA_UPDATE
+        - name: ACTIVITI_ASYNC_EXECUTOR_ACTIVATE
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: ACTIVITI_ASYNC_EXECUTOR_ACTIVATE
+        - name: ACTIVITI_HISTORY_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: ACTIVITI_HISTORY_LEVEL
+        # 应用配置
+        - name: SERVER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: SERVER_PORT
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: SPRING_PROFILES_ACTIVE
+        # JPA 配置
+        - name: SPRING_JPA_HIBERNATE_DDL_AUTO
+          value: "update"
+        - name: SPRING_JPA_SHOW_SQL
+          value: "false"
+        # 日志配置
+        - name: LOGGING_LEVEL_ROOT
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: LOGGING_LEVEL_ROOT
+        - name: LOGGING_LEVEL_ORG_ACTIVITI
+          valueFrom:
+            configMapKeyRef:
+              name: activiti-cloud-config
+              key: LOGGING_LEVEL_ORG_ACTIVITI
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+

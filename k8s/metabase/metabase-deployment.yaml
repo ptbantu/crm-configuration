@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metabase
+  namespace: default
+  labels:
+    app: metabase
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metabase
+  template:
+    metadata:
+      labels:
+        app: metabase
+    spec:
+      containers:
+      - name: metabase
+        image: metabase/metabase:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        # 数据库配置
+        - name: MB_DB_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_DB_TYPE
+        - name: MB_DB_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_DB_DBNAME
+        - name: MB_DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_DB_PORT
+        - name: MB_DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_DB_USER
+        - name: MB_DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_DB_HOST
+        - name: MB_DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_PASSWORD
+        # 应用配置
+        - name: MB_JETTY_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_JETTY_PORT
+        - name: MB_JETTY_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_JETTY_HOST
+        - name: MB_ENCRYPTION_SECRET_KEY
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_ENCRYPTION_SECRET_KEY
+        - name: MB_PASSWORD_COMPLEXITY
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_PASSWORD_COMPLEXITY
+        - name: MB_PASSWORD_LENGTH
+          valueFrom:
+            configMapKeyRef:
+              name: metabase-config
+              key: MB_PASSWORD_LENGTH
+        volumeMounts:
+        - name: metabase-data
+          mountPath: /metabase-data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 60
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: metabase-data
+        persistentVolumeClaim:
+          claimName: metabase-pvc
+

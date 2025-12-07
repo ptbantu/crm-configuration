@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: activiti-ingress
+  labels:
+    app: activiti
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: activiti.local
+    http:
+      paths:
+      - path: /activiti(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: activiti
+            port:
+              number: 8080
+  # 如果需要 HTTPS，取消下面的注释并配置 TLS
+  # tls:
+  # - hosts:
+  #   - activiti.local
+  #   secretName: activiti-tls
+
